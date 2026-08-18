@@ -101,8 +101,22 @@
   }
   .room-tag{font-family:'Space Mono',monospace;font-size:13px;color:var(--ember);letter-spacing:0.05em;}
   .room-tag span{color:var(--ash);}
-  .life-note{font-size:11px;color:var(--ash);display:flex;align-items:center;gap:6px;}
+  .life-note{font-size:11px;color:var(--ash);display:flex;align-items:center;gap:10px;}
   .dot{width:6px;height:6px;border-radius:50%;background:var(--good);box-shadow:0 0 6px var(--good);}
+  .bell{
+    background:none;border:1px solid var(--line);color:var(--ash);width:28px;height:28px;border-radius:8px;
+    cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:13px;transition:all .15s ease;
+  }
+  .bell.on{color:var(--ember);border-color:var(--ember-dim);}
+  .bell:hover{color:var(--paper);}
+
+  .toast{
+    position:absolute;top:64px;left:50%;transform:translateX(-50%) translateY(-8px);
+    background:var(--panel-2);border:1px solid var(--ember-dim);border-radius:10px;padding:9px 16px;
+    font-size:13px;color:var(--paper);opacity:0;pointer-events:none;transition:all .25s ease;z-index:5;
+    max-width:80%;text-align:center;
+  }
+  .toast.show{opacity:1;transform:translateX(-50%) translateY(0);}
 
   .messages{flex:1;overflow-y:auto;padding:20px;display:flex;flex-direction:column;gap:16px;}
   .messages::-webkit-scrollbar{width:6px;}
@@ -111,16 +125,37 @@
   .empty{margin:auto;text-align:center;color:var(--ash);font-size:13px;line-height:1.7;}
   .empty .big{font-family:'Space Mono',monospace;font-size:15px;color:var(--paper);display:block;margin-bottom:4px;}
 
-  .msg{max-width:78%;display:flex;flex-direction:column;gap:6px;}
+  .msg{max-width:78%;display:flex;flex-direction:column;gap:6px;position:relative;}
   .msg.mine{align-self:flex-end;align-items:flex-end;}
   .msg.theirs{align-self:flex-start;align-items:flex-start;}
-  .meta{font-size:11px;color:var(--ash);font-family:'Space Mono',monospace;}
+  .meta{font-size:11px;color:var(--ash);font-family:'Space Mono',monospace;display:flex;align-items:center;gap:8px;}
+  .reply-btn{
+    background:none;border:none;color:var(--ash);font-size:11px;cursor:pointer;padding:0;
+    opacity:0;transition:opacity .15s ease;font-family:'Inter',sans-serif;
+  }
+  .msg:hover .reply-btn{opacity:1;}
+  .reply-btn:hover{color:var(--ember);}
+  .quote{
+    font-size:12px;color:var(--ash);border-left:2px solid var(--ember-dim);padding:4px 10px;
+    margin-bottom:6px;border-radius:4px;background:rgba(255,122,69,0.06);max-width:100%;
+  }
+  .quote b{color:var(--paper);}
   .bubble{padding:10px 14px;border-radius:12px;font-size:14.5px;line-height:1.5;word-wrap:break-word;white-space:pre-wrap;}
   .msg.mine .bubble{background:var(--ember);color:#1a0f08;border-bottom-right-radius:3px;}
   .msg.theirs .bubble{background:var(--panel-2);border:1px solid var(--line);border-bottom-left-radius:3px;}
 
   .fuse{width:100%;height:2px;background:var(--line);border-radius:2px;overflow:hidden;}
   .fuse-fill{height:100%;background:linear-gradient(90deg, var(--ember-dim), var(--ember));width:0%;}
+
+  .reply-preview{
+    display:none;align-items:center;justify-content:space-between;gap:10px;
+    padding:8px 16px;background:var(--panel-2);border-top:1px solid var(--line);
+  }
+  .reply-preview.show{display:flex;}
+  .reply-preview .info{font-size:12px;color:var(--ash);border-left:2px solid var(--ember);padding-left:8px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+  .reply-preview .info b{color:var(--paper);}
+  .reply-preview button{background:none;border:none;color:var(--ash);cursor:pointer;font-size:16px;line-height:1;flex-shrink:0;}
+  .reply-preview button:hover{color:var(--paper);}
 
   form.composer{display:flex;gap:10px;padding:16px;border-top:1px solid var(--line);background:var(--panel-2);}
   .composer input{
@@ -160,10 +195,18 @@
   <div class="chatwrap" id="chatwrap">
     <header class="chatbar">
       <div class="room-tag">room: <span id="roomLabel"></span></div>
-      <div class="life-note"><span class="dot"></span> messages vanish after 1 hour</div>
+      <div class="life-note">
+        <span class="dot"></span> messages vanish after 1 hour
+        <button class="bell" id="bellBtn" type="button" title="Toggle notifications">🔔</button>
+      </div>
     </header>
+    <div class="toast" id="toast"></div>
     <div class="messages" id="messages">
       <div class="empty" id="emptyState"><span class="big">Nothing here yet</span>Say something — it'll stick around for an hour.</div>
+    </div>
+    <div class="reply-preview" id="replyPreview">
+      <div class="info">Replying to <b id="replyPreviewName"></b>: <span id="replyPreviewText"></span></div>
+      <button type="button" id="cancelReply" title="Cancel reply">✕</button>
     </div>
     <form class="composer" id="composer">
       <input type="text" id="msgInput" placeholder="Type a message…" maxlength="1000" autocomplete="off">
@@ -178,6 +221,10 @@
   let myName = null;
   let pollTimer = null;
   let renderedIds = new Set();
+  let notifyEnabled = false;
+  let replyingTo = null; // { id, sender, text }
+  let toastTimer = null;
+  let audioCtx = null;
 
   const landing = document.getElementById('landing');
   const chatwrap = document.getElementById('chatwrap');
@@ -190,6 +237,13 @@
   const emptyState = document.getElementById('emptyState');
   const composer = document.getElementById('composer');
   const msgInput = document.getElementById('msgInput');
+  const bellBtn = document.getElementById('bellBtn');
+  const toast = document.getElementById('toast');
+  const replyPreview = document.getElementById('replyPreview');
+  const replyPreviewName = document.getElementById('replyPreviewName');
+  const replyPreviewText = document.getElementById('replyPreviewText');
+  const cancelReply = document.getElementById('cancelReply');
+  const baseTitle = document.title;
 
   function slugRoom(r){ return r.trim().toLowerCase().replace(/\s+/g,'-').slice(0,60); }
 
@@ -201,12 +255,12 @@
     }catch(e){ return []; }
   }
 
-  async function postMessage(text){
+  async function postMessage(text, replyTo){
     try{
       const res = await fetch('/api/messages', {
         method:'POST',
         headers:{'Content-Type':'application/json'},
-        body: JSON.stringify({room, sender: myName, text})
+        body: JSON.stringify({room, sender: myName, text, replyTo: replyTo || null})
       });
       return res.ok ? await res.json() : null;
     }catch(e){ return null; }
@@ -214,6 +268,73 @@
 
   function fmtClock(ts){
     return new Date(ts).toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'});
+  }
+
+  function beep(){
+    try{
+      audioCtx = audioCtx || new (window.AudioContext || window.webkitAudioContext)();
+      const osc = audioCtx.createOscillator();
+      const gain = audioCtx.createGain();
+      osc.type = 'sine';
+      osc.frequency.value = 720;
+      gain.gain.setValueAtTime(0.001, audioCtx.currentTime);
+      gain.gain.exponentialRampToValueAtTime(0.12, audioCtx.currentTime + 0.02);
+      gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 0.3);
+      osc.connect(gain).connect(audioCtx.destination);
+      osc.start();
+      osc.stop(audioCtx.currentTime + 0.3);
+    }catch(e){ /* audio not available, ignore */ }
+  }
+
+  function showToast(text){
+    toast.textContent = text;
+    toast.classList.add('show');
+    clearTimeout(toastTimer);
+    toastTimer = setTimeout(() => toast.classList.remove('show'), 3200);
+  }
+
+  let titleFlashTimer = null;
+  function flashTitle(text){
+    let on = true;
+    clearInterval(titleFlashTimer);
+    document.title = text;
+    titleFlashTimer = setInterval(() => {
+      document.title = on ? baseTitle : text;
+      on = !on;
+    }, 1200);
+    const stop = () => {
+      clearInterval(titleFlashTimer);
+      document.title = baseTitle;
+      window.removeEventListener('focus', stop);
+    };
+    window.addEventListener('focus', stop);
+  }
+
+  function notifyIncoming(m){
+    beep();
+    showToast(m.sender + ': ' + (m.text.length > 60 ? m.text.slice(0,60) + '…' : m.text));
+    if(document.hidden || !document.hasFocus()){
+      flashTitle('💬 New message');
+      if(notifyEnabled && 'Notification' in window && Notification.permission === 'granted'){
+        try{
+          const n = new Notification(m.sender + ' — ' + room, { body: m.text, tag: 'vanish-' + room });
+          n.onclick = () => { window.focus(); n.close(); };
+        }catch(e){ /* ignore */ }
+      }
+    }
+  }
+
+  function setReplyTarget(m){
+    replyingTo = { id: m.id, sender: (m.sender === myName ? 'You' : m.sender), text: m.text };
+    replyPreviewName.textContent = replyingTo.sender;
+    replyPreviewText.textContent = replyingTo.text.length > 80 ? replyingTo.text.slice(0,80) + '…' : replyingTo.text;
+    replyPreview.classList.add('show');
+    msgInput.focus();
+  }
+
+  function clearReplyTarget(){
+    replyingTo = null;
+    replyPreview.classList.remove('show');
   }
 
   function renderAll(list){
@@ -234,7 +355,25 @@
 
     const meta = document.createElement('div');
     meta.className = 'meta';
-    meta.textContent = (m.sender === myName ? 'You' : m.sender) + ' · ' + fmtClock(m.ts);
+    const metaText = document.createElement('span');
+    metaText.textContent = (m.sender === myName ? 'You' : m.sender) + ' · ' + fmtClock(m.ts);
+    meta.appendChild(metaText);
+    const replyBtn = document.createElement('button');
+    replyBtn.className = 'reply-btn';
+    replyBtn.type = 'button';
+    replyBtn.textContent = '↩ reply';
+    replyBtn.addEventListener('click', () => setReplyTarget(m));
+    meta.appendChild(replyBtn);
+
+    let quote = null;
+    if(m.replyTo){
+      quote = document.createElement('div');
+      quote.className = 'quote';
+      const qb = document.createElement('b');
+      qb.textContent = m.replyTo.sender + ': ';
+      quote.appendChild(qb);
+      quote.appendChild(document.createTextNode(m.replyTo.text));
+    }
 
     const bubble = document.createElement('div');
     bubble.className = 'bubble';
@@ -251,6 +390,7 @@
     fuse.appendChild(fill);
 
     wrap.appendChild(meta);
+    if(quote) wrap.appendChild(quote);
     wrap.appendChild(bubble);
     wrap.appendChild(fuse);
     messagesEl.appendChild(wrap);
@@ -273,6 +413,7 @@
         if(emptyState.parentNode) emptyState.remove();
         addBubble(m);
         added = true;
+        if(m.sender !== myName) notifyIncoming(m);
       }
     });
     if(added) messagesEl.scrollTop = messagesEl.scrollHeight;
@@ -306,12 +447,33 @@
 
   roomInput.addEventListener('keydown', (e) => { if(e.key === 'Enter') enterBtn.click(); });
 
+  bellBtn.addEventListener('click', async () => {
+    if(!('Notification' in window)){
+      showToast('Notifications not supported in this browser');
+      return;
+    }
+    if(Notification.permission === 'granted'){
+      notifyEnabled = !notifyEnabled;
+      bellBtn.classList.toggle('on', notifyEnabled);
+      showToast(notifyEnabled ? 'Notifications on' : 'Notifications off');
+      return;
+    }
+    const perm = await Notification.requestPermission();
+    notifyEnabled = perm === 'granted';
+    bellBtn.classList.toggle('on', notifyEnabled);
+    showToast(notifyEnabled ? 'Notifications on' : 'Notifications blocked');
+  });
+
+  cancelReply.addEventListener('click', clearReplyTarget);
+
   composer.addEventListener('submit', async (e) => {
     e.preventDefault();
     const text = msgInput.value.trim();
     if(!text) return;
     msgInput.value = '';
-    const m = await postMessage(text);
+    const replyPayload = replyingTo ? { id: replyingTo.id, sender: replyingTo.sender, text: replyingTo.text } : null;
+    clearReplyTarget();
+    const m = await postMessage(text, replyPayload);
     if(m && !renderedIds.has(m.id)){
       if(emptyState.parentNode) emptyState.remove();
       addBubble(m);

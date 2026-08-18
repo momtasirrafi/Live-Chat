@@ -65,11 +65,21 @@ module.exports = async (req, res) => {
       const now = Date.now();
       arr = arr.filter(m => now - m.ts < LIFETIME_MS);
 
+      let replyTo = null;
+      if (body.replyTo && body.replyTo.id) {
+        replyTo = {
+          id: String(body.replyTo.id).slice(0, 64),
+          sender: String(body.replyTo.sender || '').trim().slice(0, 24),
+          text: String(body.replyTo.text || '').trim().slice(0, 120)
+        };
+      }
+
       const msg = {
         id: now + '-' + Math.random().toString(36).slice(2, 8),
         sender,
         text,
-        ts: now
+        ts: now,
+        replyTo
       };
       arr.push(msg);
       await redis(['SET', key, JSON.stringify(arr)]);
