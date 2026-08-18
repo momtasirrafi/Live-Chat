@@ -1,0 +1,324 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Vanish — chat that burns away</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --ink:#10131a;
+    --panel:#171b25;
+    --panel-2:#1e2330;
+    --ember:#ff7a45;
+    --ember-dim:#c75a2e;
+    --ash:#8b93a6;
+    --paper:#eef0f4;
+    --line:#2a2f3d;
+    --good:#5ecb96;
+  }
+  *{box-sizing:border-box;}
+  html,body{height:100%;}
+  body{
+    margin:0;
+    background:
+      radial-gradient(circle at 15% 0%, #1a1f2c 0%, transparent 45%),
+      radial-gradient(circle at 85% 100%, #1a1712 0%, transparent 40%),
+      var(--ink);
+    color:var(--paper);
+    font-family:'Inter',sans-serif;
+    min-height:100vh;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    padding:20px;
+  }
+  .landing{
+    width:100%;
+    max-width:420px;
+    background:var(--panel);
+    border:1px solid var(--line);
+    border-radius:14px;
+    padding:36px 32px;
+    position:relative;
+    overflow:hidden;
+  }
+  .landing::before{
+    content:"";
+    position:absolute;
+    top:-40%; right:-30%;
+    width:260px; height:260px;
+    background:radial-gradient(circle, rgba(255,122,69,0.16), transparent 70%);
+    pointer-events:none;
+  }
+  .brand{
+    font-family:'Space Mono',monospace;
+    font-size:13px;
+    letter-spacing:0.28em;
+    text-transform:uppercase;
+    color:var(--ember);
+    margin-bottom:6px;
+  }
+  h1{
+    font-family:'Space Mono',monospace;
+    font-size:28px;
+    font-weight:700;
+    margin:0 0 10px 0;
+    line-height:1.25;
+  }
+  .sub{color:var(--ash);font-size:14px;line-height:1.6;margin-bottom:28px;}
+  label{
+    display:block;font-size:11px;letter-spacing:0.1em;text-transform:uppercase;
+    color:var(--ash);margin-bottom:7px;margin-top:18px;
+  }
+  input[type=text]{
+    width:100%;background:var(--panel-2);border:1px solid var(--line);border-radius:8px;
+    padding:12px 14px;color:var(--paper);font-family:'Inter',sans-serif;font-size:15px;
+    outline:none;transition:border-color .15s ease;
+  }
+  input[type=text]:focus{border-color:var(--ember);}
+  .hint{font-size:12px;color:var(--ash);margin-top:6px;}
+  .btn{
+    margin-top:26px;width:100%;background:var(--ember);border:none;border-radius:8px;
+    color:#1a0f08;font-weight:600;font-size:15px;padding:13px;cursor:pointer;
+    transition:background .15s ease, transform .1s ease;
+  }
+  .btn:hover{background:#ff8c5e;}
+  .btn:active{transform:scale(0.98);}
+  .err{color:#ff8080;font-size:13px;margin-top:10px;min-height:16px;}
+
+  .chatwrap{
+    width:100%;max-width:560px;height:88vh;max-height:760px;background:var(--panel);
+    border:1px solid var(--line);border-radius:14px;display:none;flex-direction:column;overflow:hidden;
+  }
+  .chatwrap.active{display:flex;}
+  .landing.hidden{display:none;}
+
+  header.chatbar{
+    padding:16px 20px;border-bottom:1px solid var(--line);display:flex;
+    align-items:center;justify-content:space-between;background:var(--panel-2);
+  }
+  .room-tag{font-family:'Space Mono',monospace;font-size:13px;color:var(--ember);letter-spacing:0.05em;}
+  .room-tag span{color:var(--ash);}
+  .life-note{font-size:11px;color:var(--ash);display:flex;align-items:center;gap:6px;}
+  .dot{width:6px;height:6px;border-radius:50%;background:var(--good);box-shadow:0 0 6px var(--good);}
+
+  .messages{flex:1;overflow-y:auto;padding:20px;display:flex;flex-direction:column;gap:16px;}
+  .messages::-webkit-scrollbar{width:6px;}
+  .messages::-webkit-scrollbar-thumb{background:var(--line);border-radius:3px;}
+
+  .empty{margin:auto;text-align:center;color:var(--ash);font-size:13px;line-height:1.7;}
+  .empty .big{font-family:'Space Mono',monospace;font-size:15px;color:var(--paper);display:block;margin-bottom:4px;}
+
+  .msg{max-width:78%;display:flex;flex-direction:column;gap:6px;}
+  .msg.mine{align-self:flex-end;align-items:flex-end;}
+  .msg.theirs{align-self:flex-start;align-items:flex-start;}
+  .meta{font-size:11px;color:var(--ash);font-family:'Space Mono',monospace;}
+  .bubble{padding:10px 14px;border-radius:12px;font-size:14.5px;line-height:1.5;word-wrap:break-word;white-space:pre-wrap;}
+  .msg.mine .bubble{background:var(--ember);color:#1a0f08;border-bottom-right-radius:3px;}
+  .msg.theirs .bubble{background:var(--panel-2);border:1px solid var(--line);border-bottom-left-radius:3px;}
+
+  .fuse{width:100%;height:2px;background:var(--line);border-radius:2px;overflow:hidden;}
+  .fuse-fill{height:100%;background:linear-gradient(90deg, var(--ember-dim), var(--ember));width:0%;}
+
+  form.composer{display:flex;gap:10px;padding:16px;border-top:1px solid var(--line);background:var(--panel-2);}
+  .composer input{
+    flex:1;background:var(--ink);border:1px solid var(--line);border-radius:24px;
+    padding:12px 18px;color:var(--paper);font-size:14.5px;outline:none;
+  }
+  .composer input:focus{border-color:var(--ember);}
+  .send{
+    background:var(--ember);border:none;color:#1a0f08;width:44px;height:44px;border-radius:50%;
+    font-size:17px;cursor:pointer;flex-shrink:0;display:flex;align-items:center;justify-content:center;
+    transition:background .15s ease, transform .1s ease;
+  }
+  .send:hover{background:#ff8c5e;}
+  .send:active{transform:scale(0.94);}
+
+  @media (prefers-reduced-motion: reduce){ .fuse-fill{transition:none !important;} }
+</style>
+</head>
+<body>
+
+  <div class="landing" id="landing">
+    <div class="brand">Vanish</div>
+    <h1>A chat that<br>burns after an hour.</h1>
+    <div class="sub">Pick a private room code and share it with your friend. Anything either of you types disappears for good 60 minutes after it's sent.</div>
+
+    <label for="nameInput">Your name</label>
+    <input type="text" id="nameInput" placeholder="e.g. Sam" maxlength="24">
+
+    <label for="roomInput">Room code</label>
+    <input type="text" id="roomInput" placeholder="a shared secret word, e.g. driftwood-42" maxlength="40">
+    <div class="hint">Both of you enter the exact same code to land in the same room.</div>
+
+    <button class="btn" id="enterBtn">Enter room</button>
+    <div class="err" id="errMsg"></div>
+  </div>
+
+  <div class="chatwrap" id="chatwrap">
+    <header class="chatbar">
+      <div class="room-tag">room: <span id="roomLabel"></span></div>
+      <div class="life-note"><span class="dot"></span> messages vanish after 1 hour</div>
+    </header>
+    <div class="messages" id="messages">
+      <div class="empty" id="emptyState"><span class="big">Nothing here yet</span>Say something — it'll stick around for an hour.</div>
+    </div>
+    <form class="composer" id="composer">
+      <input type="text" id="msgInput" placeholder="Type a message…" maxlength="1000" autocomplete="off">
+      <button type="submit" class="send">➤</button>
+    </form>
+  </div>
+
+<script>
+(function(){
+  const LIFETIME_MS = 60 * 60 * 1000;
+  let room = null;
+  let myName = null;
+  let pollTimer = null;
+  let renderedIds = new Set();
+
+  const landing = document.getElementById('landing');
+  const chatwrap = document.getElementById('chatwrap');
+  const enterBtn = document.getElementById('enterBtn');
+  const errMsg = document.getElementById('errMsg');
+  const nameInput = document.getElementById('nameInput');
+  const roomInput = document.getElementById('roomInput');
+  const roomLabel = document.getElementById('roomLabel');
+  const messagesEl = document.getElementById('messages');
+  const emptyState = document.getElementById('emptyState');
+  const composer = document.getElementById('composer');
+  const msgInput = document.getElementById('msgInput');
+
+  function slugRoom(r){ return r.trim().toLowerCase().replace(/\s+/g,'-').slice(0,60); }
+
+  async function fetchMessages(){
+    try{
+      const res = await fetch('/api/messages?room=' + encodeURIComponent(room));
+      if(!res.ok) return [];
+      return await res.json();
+    }catch(e){ return []; }
+  }
+
+  async function postMessage(text){
+    try{
+      const res = await fetch('/api/messages', {
+        method:'POST',
+        headers:{'Content-Type':'application/json'},
+        body: JSON.stringify({room, sender: myName, text})
+      });
+      return res.ok ? await res.json() : null;
+    }catch(e){ return null; }
+  }
+
+  function fmtClock(ts){
+    return new Date(ts).toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'});
+  }
+
+  function renderAll(list){
+    messagesEl.innerHTML = '';
+    renderedIds = new Set();
+    if(list.length === 0){
+      messagesEl.appendChild(emptyState);
+      return;
+    }
+    list.forEach(addBubble);
+    messagesEl.scrollTop = messagesEl.scrollHeight;
+  }
+
+  function addBubble(m){
+    renderedIds.add(m.id);
+    const wrap = document.createElement('div');
+    wrap.className = 'msg ' + (m.sender === myName ? 'mine' : 'theirs');
+
+    const meta = document.createElement('div');
+    meta.className = 'meta';
+    meta.textContent = (m.sender === myName ? 'You' : m.sender) + ' · ' + fmtClock(m.ts);
+
+    const bubble = document.createElement('div');
+    bubble.className = 'bubble';
+    bubble.textContent = m.text;
+
+    const fuse = document.createElement('div');
+    fuse.className = 'fuse';
+    const fill = document.createElement('div');
+    fill.className = 'fuse-fill';
+    const now = Date.now();
+    const elapsedFrac = Math.min(1, (now - m.ts) / LIFETIME_MS);
+    const remainMs = Math.max(0, LIFETIME_MS - (now - m.ts));
+    fill.style.width = (elapsedFrac * 100) + '%';
+    fuse.appendChild(fill);
+
+    wrap.appendChild(meta);
+    wrap.appendChild(bubble);
+    wrap.appendChild(fuse);
+    messagesEl.appendChild(wrap);
+
+    requestAnimationFrame(() => {
+      fill.style.transition = 'width ' + remainMs + 'ms linear';
+      requestAnimationFrame(() => { fill.style.width = '100%'; });
+    });
+
+    setTimeout(() => {
+      wrap.remove();
+      if(messagesEl.children.length === 0) messagesEl.appendChild(emptyState);
+    }, remainMs + 200);
+  }
+
+  function appendNew(list){
+    let added = false;
+    list.forEach(m => {
+      if(!renderedIds.has(m.id)){
+        if(emptyState.parentNode) emptyState.remove();
+        addBubble(m);
+        added = true;
+      }
+    });
+    if(added) messagesEl.scrollTop = messagesEl.scrollHeight;
+  }
+
+  async function poll(){
+    const fresh = await fetchMessages();
+    appendNew(fresh);
+  }
+
+  enterBtn.addEventListener('click', async () => {
+    errMsg.textContent = '';
+    const nm = nameInput.value.trim();
+    const rm = slugRoom(roomInput.value);
+    if(!nm){ errMsg.textContent = 'Enter your name.'; return; }
+    if(!rm){ errMsg.textContent = 'Enter a room code.'; return; }
+
+    myName = nm;
+    room = rm;
+    roomLabel.textContent = room;
+
+    landing.classList.add('hidden');
+    chatwrap.classList.add('active');
+
+    const fresh = await fetchMessages();
+    renderAll(fresh);
+
+    pollTimer = setInterval(poll, 2000);
+    msgInput.focus();
+  });
+
+  roomInput.addEventListener('keydown', (e) => { if(e.key === 'Enter') enterBtn.click(); });
+
+  composer.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const text = msgInput.value.trim();
+    if(!text) return;
+    msgInput.value = '';
+    const m = await postMessage(text);
+    if(m && !renderedIds.has(m.id)){
+      if(emptyState.parentNode) emptyState.remove();
+      addBubble(m);
+      messagesEl.scrollTop = messagesEl.scrollHeight;
+    }
+  });
+})();
+</script>
+</body>
+</html>
