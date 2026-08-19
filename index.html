@@ -116,11 +116,18 @@
     align-items:center;justify-content:space-between;background:var(--panel-2);gap:12px;
   }
   .chatbar-left{display:flex;align-items:center;gap:9px;min-width:0;}
+  .chatbar-left{flex-direction:column;align-items:flex-start;gap:2px;}
   .room-tag{
     font-family:'Space Mono',monospace;font-size:13px;color:var(--paper);letter-spacing:0.02em;
-    overflow:hidden;text-overflow:ellipsis;white-space:nowrap;
+    overflow:hidden;text-overflow:ellipsis;white-space:nowrap;display:flex;align-items:center;gap:9px;
   }
   .room-tag b{color:var(--ember);font-weight:400;}
+  .presence-label{
+    font-size:11.5px;color:var(--ash);display:flex;align-items:center;gap:5px;height:14px;
+  }
+  .presence-label .pdot{width:7px;height:7px;border-radius:50%;background:var(--ash);flex-shrink:0;}
+  .presence-label.online{color:var(--good);}
+  .presence-label.online .pdot{background:var(--good);box-shadow:0 0 5px var(--good);}
   .status-dot{
     width:8px;height:8px;border-radius:50%;background:var(--good);box-shadow:0 0 6px var(--good);
     flex-shrink:0;cursor:default;
@@ -214,6 +221,21 @@
   .msg.mine .bubble{background:var(--ember);color:#1a0f08;border-bottom-right-radius:3px;}
   .msg.theirs .bubble{background:var(--panel-2);border:1px solid var(--line);border-bottom-left-radius:3px;}
 
+  .bubble.image-bubble{padding:5px;background:var(--panel-2);border:1px solid var(--line);}
+  .msg.mine .bubble.image-bubble{background:var(--panel-2);border:1px solid var(--line);}
+  .bubble.image-bubble img{display:block;max-width:220px;max-height:280px;width:100%;height:auto;border-radius:8px;cursor:zoom-in;object-fit:cover;}
+  .bubble.image-bubble .caption{padding:8px 6px 3px;font-size:14px;color:var(--paper);white-space:pre-wrap;}
+
+  .status-line{font-size:10.5px;color:var(--ash);font-family:'Space Mono',monospace;margin-top:1px;}
+  .status-line.seen{color:var(--good);}
+
+  .img-lightbox{
+    position:fixed;inset:0;background:rgba(6,7,10,0.92);display:none;align-items:center;justify-content:center;
+    z-index:50;padding:24px;cursor:zoom-out;
+  }
+  .img-lightbox.show{display:flex;}
+  .img-lightbox img{max-width:100%;max-height:100%;border-radius:6px;}
+
   .fuse{width:100%;height:2px;background:var(--line);border-radius:2px;overflow:hidden;}
   .fuse-fill{height:100%;background:linear-gradient(90deg, var(--ember-dim), var(--ember));width:0%;}
 
@@ -240,6 +262,14 @@
   }
   .send:hover{background:#ff8c5e;}
   .send:active{transform:scale(0.94);}
+
+  .attach-btn{
+    background:none;border:1px solid var(--line);color:var(--ash);width:44px;height:44px;border-radius:50%;
+    cursor:pointer;flex-shrink:0;display:flex;align-items:center;justify-content:center;transition:all .15s ease;
+  }
+  .attach-btn:hover{color:var(--ember);border-color:var(--ember-dim);}
+  .attach-btn svg{width:19px;height:19px;}
+  .attach-btn:disabled{opacity:0.5;cursor:default;}
 
   @media (prefers-reduced-motion: reduce){ .fuse-fill{transition:none !important;} }
 </style>
@@ -270,8 +300,11 @@
   <div class="chatwrap" id="chatwrap">
     <header class="chatbar">
       <div class="chatbar-left">
-        <span class="status-dot" title="Messages vanish 1 hour after they're sent"></span>
-        <div class="room-tag"><b>room</b> · <span id="roomLabel"></span></div>
+        <div class="room-tag">
+          <span class="status-dot" title="Messages vanish 1 hour after they're sent"></span>
+          <b>room</b> · <span id="roomLabel"></span>
+        </div>
+        <div class="presence-label" id="presenceLabel"></div>
       </div>
       <div class="toolbar">
         <button class="icon-btn" id="voiceCallBtn" type="button" title="Voice call" aria-label="Voice call">
@@ -326,10 +359,16 @@
       <button type="button" id="cancelReply" title="Cancel reply"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" width="18" height="18"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button>
     </div>
     <form class="composer" id="composer">
+      <button type="button" class="attach-btn" id="attachBtn" title="Send a photo" aria-label="Send a photo">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2.5"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="M21 15l-5-5L5 21"/></svg>
+      </button>
+      <input type="file" id="imageInput" accept="image/*" style="display:none">
       <input type="text" id="msgInput" placeholder="Type a message…" maxlength="1000" autocomplete="off">
       <button type="submit" class="send"><svg viewBox="0 0 24 24" fill="currentColor" width="17" height="17"><path d="M2 21l21-9L2 3v7l15 2-15 2z"/></svg></button>
     </form>
   </div>
+
+  <div class="img-lightbox" id="imgLightbox"><img id="imgLightboxImg" src="" alt=""></div>
 
 <script>
 (function(){
@@ -352,6 +391,16 @@
   let replyingTo = null; // { id, sender, text }
   let toastTimer = null;
   let audioCtx = null;
+
+  // ---- images, seen receipts, presence ----
+  const MAX_IMAGE_DIMENSION = 1280;   // longest side, px, before sending
+  const IMAGE_JPEG_QUALITY = 0.62;
+  const mineStatusEls = new Map();    // messageId -> status <div> (only for my own messages)
+  const seenSentIds = new Set();      // ids we've already told the server we've seen
+  let pendingSeenIds = [];            // queued, not-yet-flushed "I saw this" ids
+  let otherPersonName = null;         // learned from any incoming message
+  let presenceHeartbeatTimer = null;
+  let presenceFetchTimer = null;
 
   // ---- calling state ----
   const ICE_SERVERS = [{ urls: 'stun:stun.l.google.com:19302' }, { urls: 'stun:stun1.l.google.com:19302' }];
@@ -386,6 +435,11 @@
   const replyPreviewText = document.getElementById('replyPreviewText');
   const cancelReply = document.getElementById('cancelReply');
   const baseTitle = document.title;
+  const presenceLabel = document.getElementById('presenceLabel');
+  const attachBtn = document.getElementById('attachBtn');
+  const imageInput = document.getElementById('imageInput');
+  const imgLightbox = document.getElementById('imgLightbox');
+  const imgLightboxImg = document.getElementById('imgLightboxImg');
 
   const voiceCallBtn = document.getElementById('voiceCallBtn');
   const videoCallBtn = document.getElementById('videoCallBtn');
@@ -421,15 +475,76 @@
     }catch(e){ return []; }
   }
 
-  async function postMessage(text, replyTo){
+  async function postMessage(text, replyTo, image){
     try{
       const res = await fetch('/api/messages', {
         method:'POST',
         headers:{'Content-Type':'application/json'},
-        body: JSON.stringify({room, sender: myName, text, replyTo: replyTo || null})
+        body: JSON.stringify({room, sender: myName, text, replyTo: replyTo || null, image: image || null})
       });
       return res.ok ? await res.json() : null;
     }catch(e){ return null; }
+  }
+
+  // Shrinks + re-encodes a picked image client-side before it ever hits the
+  // network, so a phone photo doesn't turn into an 8MB request. Returns a
+  // JPEG data URL (PNGs with transparency get flattened onto white).
+  function resizeImageFile(file){
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onerror = () => reject(new Error('read failed'));
+      reader.onload = () => {
+        const img = new Image();
+        img.onerror = () => reject(new Error('decode failed'));
+        img.onload = () => {
+          let { width, height } = img;
+          if (width > MAX_IMAGE_DIMENSION || height > MAX_IMAGE_DIMENSION) {
+            const scale = MAX_IMAGE_DIMENSION / Math.max(width, height);
+            width = Math.round(width * scale);
+            height = Math.round(height * scale);
+          }
+          const canvas = document.createElement('canvas');
+          canvas.width = width;
+          canvas.height = height;
+          const ctx = canvas.getContext('2d');
+          ctx.fillStyle = '#fff';
+          ctx.fillRect(0, 0, width, height);
+          ctx.drawImage(img, 0, 0, width, height);
+          resolve(canvas.toDataURL('image/jpeg', IMAGE_JPEG_QUALITY));
+        };
+        img.src = reader.result;
+      };
+      reader.readAsDataURL(file);
+    });
+  }
+
+  async function sendImage(file){
+    if(!file || !file.type.startsWith('image/')){
+      showToast('That file isn\'t an image');
+      return;
+    }
+    attachBtn.disabled = true;
+    try{
+      const dataUrl = await resizeImageFile(file);
+      if(dataUrl.length > 1500000){
+        showToast('That image is too large, even after compressing');
+        return;
+      }
+      const replyPayload = replyingTo ? { id: replyingTo.id, sender: replyingTo.sender, text: replyingTo.text } : null;
+      clearReplyTarget();
+      const m = await postMessage('', replyPayload, dataUrl);
+      if(m && !renderedIds.has(m.id)){
+        if(emptyState.parentNode) emptyState.remove();
+        addBubble(m);
+        messagesEl.scrollTop = messagesEl.scrollHeight;
+      }else if(!m){
+        showToast('Couldn\'t send that photo — try again');
+      }
+    }catch(e){
+      showToast('Couldn\'t process that photo');
+    }finally{
+      attachBtn.disabled = false;
+    }
   }
 
   function fmtClock(ts){
@@ -486,7 +601,8 @@
 
   function notifyIncoming(m){
     beep();
-    showToast(m.sender + ': ' + (m.text.length > 60 ? m.text.slice(0,60) + '…' : m.text));
+    const preview = m.type === 'image' ? ('📷 ' + (m.text || 'Photo')) : m.text;
+    showToast(m.sender + ': ' + (preview.length > 60 ? preview.slice(0,60) + '…' : preview));
     if(document.hidden || !document.hasFocus()){
       flashTitle('💬 New message');
       // NOTE: this in-page Notification only fires while this tab/app is
@@ -496,7 +612,7 @@
       // subscribeForPush() below.
       if(notifyEnabled && 'Notification' in window && Notification.permission === 'granted'){
         try{
-          const n = new Notification(m.sender + ' — ' + room, { body: m.text, tag: 'vanish-' + room });
+          const n = new Notification(m.sender + ' — ' + room, { body: preview, tag: 'vanish-' + room });
           n.onclick = () => { window.focus(); n.close(); };
         }catch(e){ /* ignore */ }
       }
@@ -504,7 +620,8 @@
   }
 
   function setReplyTarget(m){
-    replyingTo = { id: m.id, sender: (m.sender === myName ? 'You' : m.sender), text: m.text };
+    const previewText = m.type === 'image' ? (m.text ? '📷 ' + m.text : '📷 Photo') : m.text;
+    replyingTo = { id: m.id, sender: (m.sender === myName ? 'You' : m.sender), text: previewText };
     replyPreviewName.textContent = replyingTo.sender;
     replyPreviewText.textContent = replyingTo.text.length > 80 ? replyingTo.text.slice(0,80) + '…' : replyingTo.text;
     replyPreview.classList.add('show');
@@ -515,6 +632,108 @@
     replyingTo = null;
     replyPreview.classList.remove('show');
   }
+
+  // ================= Seen receipts =================
+
+  function queueSeen(m){
+    if(m.sender === myName) return;                 // never mark my own messages
+    if(seenSentIds.has(m.id)) return;                // already told the server
+    if(m.seenBy && m.seenBy.some(s => s.name === myName)) { seenSentIds.add(m.id); return; }
+    pendingSeenIds.push(m.id);
+  }
+
+  async function flushSeenIfVisible(){
+    if(document.hidden || !pendingSeenIds.length) return;
+    const ids = pendingSeenIds.splice(0, pendingSeenIds.length);
+    ids.forEach(id => seenSentIds.add(id));
+    try{
+      await fetch('/api/messages', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({ action: 'seen', room, viewer: myName, ids })
+      });
+    }catch(e){ /* ignore — will just stay marked "sent" for the other side */ }
+  }
+
+  document.addEventListener('visibilitychange', flushSeenIfVisible);
+  window.addEventListener('focus', flushSeenIfVisible);
+
+  function statusTextFor(m){
+    if(m.seenBy && m.seenBy.length){
+      const last = m.seenBy[m.seenBy.length - 1];
+      return { text: 'Seen ' + fmtClock(last.ts), seen: true };
+    }
+    return { text: 'Sent', seen: false };
+  }
+
+  function applyStatusUpdates(list){
+    list.forEach(m => {
+      if(m.sender === myName && mineStatusEls.has(m.id)){
+        const el = mineStatusEls.get(m.id);
+        const st = statusTextFor(m);
+        el.textContent = st.text;
+        el.classList.toggle('seen', st.seen);
+      }
+    });
+  }
+
+  // ================= Presence (online / active) =================
+
+  function fmtRelativeTime(ts){
+    const s = Math.max(0, Math.floor((Date.now() - ts) / 1000));
+    if(s < 20) return 'just now';
+    if(s < 60) return s + 's ago';
+    const m = Math.floor(s / 60);
+    if(m < 60) return m + 'm ago';
+    const h = Math.floor(m / 60);
+    return h + 'h ago';
+  }
+
+  async function sendPresenceHeartbeat(){
+    try{
+      await fetch('/api/presence', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({ room, sender: myName })
+      });
+    }catch(e){ /* ignore */ }
+  }
+
+  async function refreshPresence(){
+    try{
+      const res = await fetch('/api/presence?room=' + encodeURIComponent(room));
+      if(!res.ok) return;
+      const data = await res.json();
+      const other = (data.users || []).find(u => u.name !== myName);
+      if(!other){
+        presenceLabel.textContent = '';
+        presenceLabel.classList.remove('online');
+        return;
+      }
+      otherPersonName = other.name;
+      presenceLabel.classList.toggle('online', other.online);
+      presenceLabel.innerHTML = '<span class="pdot"></span>' + other.name + ' · ' +
+        (other.online ? 'online' : (other.lastSeen ? 'last seen ' + fmtRelativeTime(other.lastSeen) : 'offline'));
+    }catch(e){ /* ignore */ }
+  }
+
+  function startPresence(){
+    sendPresenceHeartbeat();
+    refreshPresence();
+    presenceHeartbeatTimer = setInterval(sendPresenceHeartbeat, 12000);
+    presenceFetchTimer = setInterval(refreshPresence, 6000);
+  }
+
+  // ================= Image lightbox =================
+
+  function openLightbox(src){
+    imgLightboxImg.src = src;
+    imgLightbox.classList.add('show');
+  }
+  imgLightbox.addEventListener('click', () => {
+    imgLightbox.classList.remove('show');
+    imgLightboxImg.src = '';
+  });
 
   // ================= Push notifications (real, background-capable) =================
 
@@ -954,8 +1173,36 @@
     }
 
     const bubble = document.createElement('div');
-    bubble.className = 'bubble';
-    bubble.textContent = m.text;
+    if(m.type === 'image' && m.image){
+      bubble.className = 'bubble image-bubble';
+      const img = document.createElement('img');
+      img.src = m.image;
+      img.loading = 'lazy';
+      img.alt = 'photo';
+      img.addEventListener('click', () => openLightbox(m.image));
+      bubble.appendChild(img);
+      if(m.text){
+        const cap = document.createElement('div');
+        cap.className = 'caption';
+        cap.textContent = m.text;
+        bubble.appendChild(cap);
+      }
+    }else{
+      bubble.className = 'bubble';
+      bubble.textContent = m.text;
+    }
+
+    let statusEl = null;
+    if(m.sender === myName){
+      statusEl = document.createElement('div');
+      statusEl.className = 'status-line';
+      const st = statusTextFor(m);
+      statusEl.textContent = st.text;
+      statusEl.classList.toggle('seen', st.seen);
+      mineStatusEls.set(m.id, statusEl);
+    }else{
+      queueSeen(m);
+    }
 
     const fuse = document.createElement('div');
     fuse.className = 'fuse';
@@ -970,6 +1217,7 @@
     wrap.appendChild(meta);
     if(quote) wrap.appendChild(quote);
     wrap.appendChild(bubble);
+    if(statusEl) wrap.appendChild(statusEl);
     wrap.appendChild(fuse);
     messagesEl.appendChild(wrap);
 
@@ -980,6 +1228,7 @@
 
     setTimeout(() => {
       wrap.remove();
+      mineStatusEls.delete(m.id);
       if(messagesEl.children.length === 0) messagesEl.appendChild(emptyState);
     }, remainMs + 200);
   }
@@ -1000,6 +1249,8 @@
   async function poll(){
     const fresh = await fetchMessages();
     appendNew(fresh);
+    applyStatusUpdates(fresh);
+    flushSeenIfVisible();
     pollSignals();
   }
 
@@ -1020,6 +1271,8 @@
 
     const fresh = await fetchMessages();
     renderAll(fresh);
+    flushSeenIfVisible();
+    startPresence();
 
     pollTimer = setInterval(poll, 2000);
     msgInput.focus();
@@ -1064,6 +1317,16 @@
   });
 
   cancelReply.addEventListener('click', clearReplyTarget);
+
+  attachBtn.addEventListener('click', () => {
+    unlockAudio();
+    imageInput.click();
+  });
+  imageInput.addEventListener('change', () => {
+    const file = imageInput.files && imageInput.files[0];
+    imageInput.value = ''; // allow picking the same file again later
+    if(file) sendImage(file);
+  });
 
   composer.addEventListener('submit', async (e) => {
     e.preventDefault();

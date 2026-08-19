@@ -11,6 +11,7 @@
 const webpush = require('web-push');
 
 const LIFETIME_MS = 60 * 60 * 1000; // 1 hour
+const MAX_IMAGE_B64_LENGTH = 1500000; // ~1.1MB decoded — keeps Redis values and push payloads sane
 
 const VAPID_PUBLIC_KEY = process.env.VAPID_PUBLIC_KEY;
 const VAPID_PRIVATE_KEY = process.env.VAPID_PRIVATE_KEY;
@@ -43,7 +44,7 @@ function slugRoom(r) {
   return String(r || '').trim().toLowerCase().replace(/\s+/g, '-').slice(0, 60);
 }
 
-async function notifySubscribers(room, sender, text) {
+async function notifySubscribers(room, sender, previewText) {
   if (!VAPID_PUBLIC_KEY || !VAPID_PRIVATE_KEY) return; // push not configured yet
 
   try {
@@ -53,7 +54,7 @@ async function notifySubscribers(room, sender, text) {
 
     const payload = JSON.stringify({
       title: sender,
-      body: text.length > 120 ? text.slice(0, 120) + '…' : text,
+      body: previewText.length > 120 ? previewText.slice(0, 120) + '…' : previewText,
       room
     });
 
@@ -102,11 +103,50 @@ module.exports = async (req, res) => {
 
     if (req.method === 'POST') {
       const body = typeof req.body === 'string' ? JSON.parse(req.body || '{}') : (req.body || {});
+
+      // ---- mark messages as seen (read receipts) ----
+      if (body.action === 'seen') {
+        const room = slugRoom(body.room);
+        const viewer = String(body.viewer || '').trim().slice(0, 24);
+        const ids = Array.isArray(body.ids) ? body.ids.slice(0, 200).map(String) : [];
+        if (!room || !viewer || !ids.length) {
+          return res.status(400).json({ error: 'room, viewer and ids are required' });
+        }
+        const key = 'vanish:' + room;
+        const raw = await redis(['GET', key]);
+        let arr = raw ? JSON.parse(raw) : [];
+        const now = Date.now();
+        let changed = false;
+        arr = arr.map(m => {
+          if (ids.includes(m.id) && m.sender !== viewer) {
+            m.seenBy = m.seenBy || [];
+            if (!m.seenBy.some(s => s.name === viewer)) {
+              m.seenBy.push({ name: viewer, ts: now });
+              changed = true;
+            }
+          }
+          return m;
+        });
+        if (changed) await redis(['SET', key, JSON.stringify(arr)]);
+        return res.status(200).json({ ok: true });
+      }
+
+      // ---- send a new message (text and/or a single image) ----
       const room = slugRoom(body.room);
       const sender = String(body.sender || '').trim().slice(0, 24);
       const text = String(body.text || '').trim().slice(0, 1000);
-      if (!room || !sender || !text) {
-        return res.status(400).json({ error: 'room, sender and text are required' });
+      const image = typeof body.image === 'string' && body.image ? body.image : null;
+
+      if (!room || !sender || (!text && !image)) {
+        return res.status(400).json({ error: 'room, sender and text or image are required' });
+      }
+      if (image) {
+        if (!/^data:image\/(png|jpe?g|gif|webp);base64,/.test(image)) {
+          return res.status(400).json({ error: 'unsupported image format' });
+        }
+        if (image.length > MAX_IMAGE_B64_LENGTH) {
+          return res.status(400).json({ error: 'image too large' });
+        }
       }
       const key = 'vanish:' + room;
 
@@ -128,13 +168,16 @@ module.exports = async (req, res) => {
         id: now + '-' + Math.random().toString(36).slice(2, 8),
         sender,
         text,
+        image,
+        type: image ? 'image' : 'text',
         ts: now,
-        replyTo
+        replyTo,
+        seenBy: [] // filled in by the 'seen' action above once the other person views it
       };
       arr.push(msg);
       await redis(['SET', key, JSON.stringify(arr)]);
 
-      await notifySubscribers(room, sender, text);
+      await notifySubscribers(room, sender, image ? (text || '📷 Photo') : text);
 
       return res.status(200).json(msg);
     }

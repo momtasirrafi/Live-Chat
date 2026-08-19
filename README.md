@@ -20,7 +20,8 @@ your friend. Setup takes about 5 minutes, one time only.
 Easiest way (no command line):
 1. Put this whole folder into a GitHub repository (create a new repo, upload
    these files: `index.html`, `api/messages.js`, `api/signal.js`,
-   `api/subscribe.js`, `sw.js`, `manifest.json`, `package.json`).
+   `api/subscribe.js`, `api/presence.js`, `sw.js`, `manifest.json`,
+   `package.json`).
 2. Go to https://vercel.com, sign up free, click "Add New… → Project".
 3. Import that GitHub repo. Leave all settings as default and click Deploy.
 
@@ -112,7 +113,22 @@ to sign up for, you generate it yourself).
 If you skip this whole section, the app still works fine — you just won't
 get notified of new messages while the app is closed or backgrounded.
 
-## 7. About voice/video calls when the app is closed or the phone is locked
+## 7. Photos, seen receipts, and "active now"
+
+- **Photos:** tap the picture icon next to the message box to send a
+  photo. It's resized and compressed in your browser before sending (max
+  1280px, JPEG), so it stays small and still vanishes on the same 1-hour
+  timer as text. Tap a photo to view it full-screen.
+- **Sent / Seen:** under each message you send, you'll see `Sent`, which
+  changes to `Seen HH:MM` once the other person has actually had the
+  message on their screen.
+- **Active now:** under the room name in the header, you'll see the other
+  person's status — `online` (green dot) while their app is open, or
+  `last seen Xm ago` once they've closed it. This uses a new endpoint,
+  `api/presence.js`, so make sure that file is deployed alongside the
+  others (see step 2).
+
+## 8. About voice/video calls when the app is closed or the phone is locked
 
 Once push is set up (step 6), an incoming call also sends a push
 notification — "X is calling you" — so the other person's phone can alert
