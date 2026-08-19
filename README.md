@@ -45,3 +45,18 @@ Send that exact link to your friend. Both of you open it, type the **same
 room code**, pick your names, and start chatting. Every message vanishes
 for both of you 60 minutes after it was sent — no Claude, no login, no
 manual cleanup needed.
+
+## 5. Install it as an app on your phone
+
+This site is a PWA (installable web app) — once deployed, both you and your
+friend can add it to your home screen and it'll open full-screen like a
+real app, with its own icon.
+
+**Android (Chrome):** open the site → tap the ⋮ menu → "Install app" (or
+you may see an automatic "Add Vanish to Home screen" banner).
+
+**iPhone (Safari):** open the site → tap the Share icon (square with an
+arrow) → "Add to Home Screen" → Add.
+
+**Desktop (Chrome/Edge):** open the site → click the install icon (⊕ or a
+small monitor icon) in the address bar → Install.
