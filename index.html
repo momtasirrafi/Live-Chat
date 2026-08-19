@@ -63,25 +63,29 @@
     background:radial-gradient(circle, rgba(255,122,69,0.16), transparent 70%);
     pointer-events:none;
   }
+  .brand-row{display:flex;align-items:center;gap:8px;margin-bottom:20px;}
+  .brand-mark{
+    width:26px;height:26px;border-radius:8px;background:var(--ember);
+    display:flex;align-items:center;justify-content:center;flex-shrink:0;
+  }
   .brand{
     font-family:'Space Mono',monospace;
-    font-size:13px;
+    font-size:12px;
     letter-spacing:0.28em;
     text-transform:uppercase;
     color:var(--ember);
-    margin-bottom:6px;
   }
   h1{
     font-family:'Space Mono',monospace;
-    font-size:28px;
+    font-size:26px;
     font-weight:700;
-    margin:0 0 10px 0;
-    line-height:1.25;
+    margin:0 0 12px 0;
+    line-height:1.3;
   }
-  .sub{color:var(--ash);font-size:14px;line-height:1.6;margin-bottom:28px;}
+  .sub{color:var(--ash);font-size:14px;line-height:1.65;margin-bottom:8px;}
   label{
     display:block;font-size:11px;letter-spacing:0.1em;text-transform:uppercase;
-    color:var(--ash);margin-bottom:7px;margin-top:18px;
+    color:var(--ash);margin-bottom:7px;margin-top:22px;
   }
   input[type=text]{
     width:100%;background:var(--panel-2);border:1px solid var(--line);border-radius:8px;
@@ -108,19 +112,28 @@
   .landing.hidden{display:none;}
 
   header.chatbar{
-    padding:16px 20px;border-bottom:1px solid var(--line);display:flex;
-    align-items:center;justify-content:space-between;background:var(--panel-2);
+    padding:14px 18px;border-bottom:1px solid var(--line);display:flex;
+    align-items:center;justify-content:space-between;background:var(--panel-2);gap:12px;
   }
-  .room-tag{font-family:'Space Mono',monospace;font-size:13px;color:var(--ember);letter-spacing:0.05em;}
-  .room-tag span{color:var(--ash);}
-  .life-note{font-size:11px;color:var(--ash);display:flex;align-items:center;gap:10px;}
-  .dot{width:6px;height:6px;border-radius:50%;background:var(--good);box-shadow:0 0 6px var(--good);}
+  .chatbar-left{display:flex;align-items:center;gap:9px;min-width:0;}
+  .room-tag{
+    font-family:'Space Mono',monospace;font-size:13px;color:var(--paper);letter-spacing:0.02em;
+    overflow:hidden;text-overflow:ellipsis;white-space:nowrap;
+  }
+  .room-tag b{color:var(--ember);font-weight:400;}
+  .status-dot{
+    width:8px;height:8px;border-radius:50%;background:var(--good);box-shadow:0 0 6px var(--good);
+    flex-shrink:0;cursor:default;
+  }
+  .toolbar{display:flex;align-items:center;gap:4px;flex-shrink:0;}
   .icon-btn{
-    background:none;border:1px solid var(--line);color:var(--ash);width:28px;height:28px;border-radius:8px;
-    cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:13px;transition:all .15s ease;
+    background:none;border:none;color:var(--ash);width:38px;height:38px;border-radius:10px;
+    cursor:pointer;display:flex;align-items:center;justify-content:center;transition:all .15s ease;
   }
-  .icon-btn.on{color:var(--ember);border-color:var(--ember-dim);}
-  .icon-btn:hover{color:var(--paper);}
+  .icon-btn:hover{background:rgba(255,255,255,0.06);color:var(--paper);}
+  .icon-btn.on{color:var(--ember);background:rgba(255,122,69,0.12);}
+  .icon-btn svg{width:18px;height:18px;}
+  .toolbar-divider{width:1px;height:22px;background:var(--line);margin:0 4px;}
 
   /* ---------- Call overlay ---------- */
   .call-overlay{
@@ -234,16 +247,21 @@
 <body>
 
   <div class="landing" id="landing">
-    <div class="brand">Vanish</div>
-    <h1>A chat that<br>burns after an hour.</h1>
-    <div class="sub">Pick a private room code and share it with your friend. Anything either of you types disappears for good 60 minutes after it's sent.</div>
+    <div class="brand-row">
+      <div class="brand-mark">
+        <svg viewBox="0 0 24 24" width="16" height="16" fill="var(--ink)"><path d="M12 2c2 3 4.5 5 4.5 8.5a4.5 4.5 0 0 1-9 0c0-1.3.5-2.3 1.2-3.3.2 1 .9 1.6 1.6 1.6.9 0 1-1 .7-1.8-.5-1.3-.4-2.9 1-5z"/></svg>
+      </div>
+      <div class="brand">Vanish</div>
+    </div>
+    <h1>Chat that disappears<br>after an hour.</h1>
+    <div class="sub">Share a room code with your friend — anything you type is gone for good 60 minutes after it's sent.</div>
 
     <label for="nameInput">Your name</label>
     <input type="text" id="nameInput" placeholder="e.g. Sam" maxlength="24">
 
     <label for="roomInput">Room code</label>
-    <input type="text" id="roomInput" placeholder="a shared secret word, e.g. driftwood-42" maxlength="40">
-    <div class="hint">Both of you enter the exact same code to land in the same room.</div>
+    <input type="text" id="roomInput" placeholder="a word only you two know" maxlength="40">
+    <div class="hint">Both of you enter the same code to land in the same room.</div>
 
     <button class="btn" id="enterBtn">Enter room</button>
     <div class="err" id="errMsg"></div>
@@ -251,12 +269,21 @@
 
   <div class="chatwrap" id="chatwrap">
     <header class="chatbar">
-      <div class="room-tag">room: <span id="roomLabel"></span></div>
-      <div class="life-note">
-        <span class="dot"></span> messages vanish after 1 hour
-        <button class="icon-btn" id="voiceCallBtn" type="button" title="Voice call">📞</button>
-        <button class="icon-btn" id="videoCallBtn" type="button" title="Video call">🎥</button>
-        <button class="icon-btn" id="bellBtn" type="button" title="Toggle notifications">🔔</button>
+      <div class="chatbar-left">
+        <span class="status-dot" title="Messages vanish 1 hour after they're sent"></span>
+        <div class="room-tag"><b>room</b> · <span id="roomLabel"></span></div>
+      </div>
+      <div class="toolbar">
+        <button class="icon-btn" id="voiceCallBtn" type="button" title="Voice call" aria-label="Voice call">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72c.13.96.36 1.9.7 2.81a2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45c.91.34 1.85.57 2.81.7A2 2 0 0 1 22 16.92z"/></svg>
+        </button>
+        <button class="icon-btn" id="videoCallBtn" type="button" title="Video call" aria-label="Video call">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M23 7l-7 5 7 5V7z"/><rect x="1" y="5" width="15" height="14" rx="2.5"/></svg>
+        </button>
+        <div class="toolbar-divider"></div>
+        <button class="icon-btn" id="bellBtn" type="button" title="Toggle notifications" aria-label="Toggle notifications">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8a6 6 0 0 0-12 0c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
+        </button>
       </div>
     </header>
     <div class="toast" id="toast"></div>
@@ -266,27 +293,27 @@
         <video id="remoteVideo" class="remote-video" autoplay playsinline></video>
         <video id="localVideo" class="local-video" autoplay playsinline muted></video>
         <div class="call-controls-row">
-          <button class="call-btn mute-tgl" id="muteBtn" type="button" title="Mute">🎤</button>
-          <button class="call-btn cam-tgl" id="camBtn" type="button" title="Camera">🎥</button>
-          <button class="call-btn hangup" id="hangupBtnVideo" type="button" title="Hang up">✕</button>
+          <button class="call-btn mute-tgl" id="muteBtn" type="button" title="Mute"><span class="ico-mic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" width="20" height="20"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" y1="19" x2="12" y2="23"/><line x1="8" y1="23" x2="16" y2="23"/></svg></span></button>
+          <button class="call-btn cam-tgl" id="camBtn" type="button" title="Camera"><span class="ico-cam"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" width="20" height="20"><path d="M23 7l-7 5 7 5V7z"/><rect x="1" y="5" width="15" height="14" rx="2.5"/></svg></span></button>
+          <button class="call-btn hangup" id="hangupBtnVideo" type="button" title="Hang up"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" width="22" height="22"><path d="M10.68 13.31a16 16 0 0 0 3.41 2.6l1.27-1.27a2 2 0 0 1 2.11-.45c.9.34 1.85.57 2.81.7A2 2 0 0 1 22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.42 19.42 0 0 1-3.33-2.67m-2.67-3.34a19.79 19.79 0 0 1-3.07-8.63A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72c.13.96.36 1.9.7 2.81a2 2 0 0 1-.45 2.11L8.09 9.91"/><line x1="23" y1="1" x2="1" y2="23"/></svg></button>
         </div>
       </div>
       <div id="callAudioUi">
-        <div class="call-avatar" id="callAvatar">🔥</div>
+        <div class="call-avatar" id="callAvatar"></div>
         <div class="call-name" id="callName"></div>
         <div class="call-status" id="callStatus"></div>
         <div class="call-timer" id="callTimer"></div>
         <audio id="remoteAudio" autoplay></audio>
         <div id="outgoingControls" class="call-controls">
-          <button class="call-btn hangup" id="cancelCallBtn" type="button" title="Cancel">✕</button>
+          <button class="call-btn hangup" id="cancelCallBtn" type="button" title="Cancel"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" width="18" height="18"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button>
         </div>
         <div id="incomingControls" class="incoming-actions">
-          <button class="call-btn accept" id="acceptCallBtn" type="button" title="Accept">✓</button>
-          <button class="call-btn decline" id="declineCallBtn" type="button" title="Decline">✕</button>
+          <button class="call-btn accept" id="acceptCallBtn" type="button" title="Accept"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" width="22" height="22"><polyline points="20 6 9 17 4 12"/></svg></button>
+          <button class="call-btn decline" id="declineCallBtn" type="button" title="Decline"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" width="18" height="18"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button>
         </div>
         <div id="connectedControls" class="call-controls">
-          <button class="call-btn mute-tgl" id="muteBtnAudio" type="button" title="Mute">🎤</button>
-          <button class="call-btn hangup" id="hangupBtnAudio" type="button" title="Hang up">✕</button>
+          <button class="call-btn mute-tgl" id="muteBtnAudio" type="button" title="Mute"><span class="ico-mic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" width="20" height="20"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" y1="19" x2="12" y2="23"/><line x1="8" y1="23" x2="16" y2="23"/></svg></span></button>
+          <button class="call-btn hangup" id="hangupBtnAudio" type="button" title="Hang up"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" width="22" height="22"><path d="M10.68 13.31a16 16 0 0 0 3.41 2.6l1.27-1.27a2 2 0 0 1 2.11-.45c.9.34 1.85.57 2.81.7A2 2 0 0 1 22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.42 19.42 0 0 1-3.33-2.67m-2.67-3.34a19.79 19.79 0 0 1-3.07-8.63A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72c.13.96.36 1.9.7 2.81a2 2 0 0 1-.45 2.11L8.09 9.91"/><line x1="23" y1="1" x2="1" y2="23"/></svg></button>
         </div>
       </div>
     </div>
@@ -296,16 +323,22 @@
     </div>
     <div class="reply-preview" id="replyPreview">
       <div class="info">Replying to <b id="replyPreviewName"></b>: <span id="replyPreviewText"></span></div>
-      <button type="button" id="cancelReply" title="Cancel reply">✕</button>
+      <button type="button" id="cancelReply" title="Cancel reply"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" width="18" height="18"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button>
     </div>
     <form class="composer" id="composer">
       <input type="text" id="msgInput" placeholder="Type a message…" maxlength="1000" autocomplete="off">
-      <button type="submit" class="send">➤</button>
+      <button type="submit" class="send"><svg viewBox="0 0 24 24" fill="currentColor" width="17" height="17"><path d="M2 21l21-9L2 3v7l15 2-15 2z"/></svg></button>
     </form>
   </div>
 
 <script>
 (function(){
+  const ICON_MIC = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" width="20" height="20"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" y1="19" x2="12" y2="23"/><line x1="8" y1="23" x2="16" y2="23"/></svg>';
+  const ICON_MIC_OFF = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" width="20" height="20"><line x1="1" y1="1" x2="23" y2="23"/><path d="M9 9v3a3 3 0 0 0 5.12 2.12M15 9.34V4a3 3 0 0 0-5.94-.6"/><path d="M17 16.95A7 7 0 0 1 5 12v-2m14 0v2a7 7 0 0 1-.11 1.23"/><line x1="12" y1="19" x2="12" y2="23"/><line x1="8" y1="23" x2="16" y2="23"/></svg>';
+  const ICON_CAM = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" width="20" height="20"><path d="M23 7l-7 5 7 5V7z"/><rect x="1" y="5" width="15" height="14" rx="2.5"/></svg>';
+  const ICON_CAM_OFF = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" width="20" height="20"><path d="M16 16v1a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V7a2 2 0 0 1 2-2h2"/><path d="M23 7l-7 5 7 5V7z"/><line x1="1" y1="1" x2="23" y2="23"/></svg>';
+  const ICON_PHONE = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" width="26" height="26"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72c.13.96.36 1.9.7 2.81a2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45c.9.34 1.85.57 2.81.7A2 2 0 0 1 22 16.92z"/></svg>';
+  const ICON_VIDEO = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" width="26" height="26"><path d="M23 7l-7 5 7 5V7z"/><rect x="1" y="5" width="15" height="14" rx="2.5"/></svg>';
   const LIFETIME_MS = 60 * 60 * 1000;
   let room = null;
   let myName = null;
@@ -502,7 +535,7 @@
     return callName.dataset.other || 'them';
   }
 
-  function callIcon(type){ return type === 'video' ? '🎥' : '📞'; }
+  function callIcon(type){ return type === 'video' ? ICON_VIDEO : ICON_PHONE; }
 
   function showOverlay(){ callOverlay.classList.add('show'); }
   function hideOverlay(){ callOverlay.classList.remove('show'); }
@@ -552,6 +585,9 @@
     localVideo.srcObject = null;
     remoteAudio.srcObject = null;
     callAvatar.classList.remove('pulse');
+    [muteBtn, muteBtnAudio].forEach(b => { b.classList.remove('off'); b.innerHTML = ICON_MIC; });
+    camBtn.classList.remove('off');
+    camBtn.innerHTML = ICON_CAM;
     hideOverlay();
   }
 
@@ -623,8 +659,8 @@
 
     callName.dataset.other = '';
     callName.textContent = 'Calling…';
-    callStatus.textContent = callIcon(type) + ' ' + (type === 'video' ? 'Video call' : 'Voice call');
-    callAvatar.textContent = type === 'video' ? '🎥' : '🔥';
+    callStatus.textContent = type === 'video' ? 'Video call' : 'Voice call';
+    callAvatar.innerHTML = callIcon(type);
     callAvatar.classList.add('pulse');
     callVideoWrap.classList.remove('show');
     callAudioUi.style.display = 'flex';
@@ -666,8 +702,8 @@
 
     callName.dataset.other = sig.sender;
     callName.textContent = sig.sender;
-    callStatus.textContent = (callTypeActive === 'video' ? '🎥 Video call' : '📞 Voice call') + ' — incoming';
-    callAvatar.textContent = callTypeActive === 'video' ? '🎥' : '🔥';
+    callStatus.textContent = (callTypeActive === 'video' ? 'Video call' : 'Voice call') + ' — incoming';
+    callAvatar.innerHTML = callIcon(callTypeActive);
     callAvatar.classList.add('pulse');
     callVideoWrap.classList.remove('show');
     callAudioUi.style.display = 'flex';
@@ -736,7 +772,7 @@
     const muted = !track.enabled;
     [muteBtn, muteBtnAudio].forEach(b => {
       b.classList.toggle('off', muted);
-      b.textContent = muted ? '🔇' : '🎤';
+      b.innerHTML = muted ? ICON_MIC_OFF : ICON_MIC;
     });
   }
 
@@ -746,7 +782,7 @@
     if(!track) return;
     track.enabled = !track.enabled;
     camBtn.classList.toggle('off', !track.enabled);
-    camBtn.textContent = track.enabled ? '🎥' : '📷';
+    camBtn.innerHTML = track.enabled ? ICON_CAM : ICON_CAM_OFF;
   }
 
   async function pollSignals(){
