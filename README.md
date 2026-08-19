@@ -45,4 +45,3 @@ Send that exact link to your friend. Both of you open it, type the **same
 room code**, pick your names, and start chatting. Every message vanishes
 for both of you 60 minutes after it was sent — no Claude, no login, no
 manual cleanup needed.
-"# Live-Chat" 

@@ -91,6 +91,7 @@
   .chatwrap{
     width:100%;max-width:560px;height:88vh;max-height:760px;background:var(--panel);
     border:1px solid var(--line);border-radius:14px;display:none;flex-direction:column;overflow:hidden;
+    position:relative;
   }
   .chatwrap.active{display:flex;}
   .landing.hidden{display:none;}
@@ -103,12 +104,57 @@
   .room-tag span{color:var(--ash);}
   .life-note{font-size:11px;color:var(--ash);display:flex;align-items:center;gap:10px;}
   .dot{width:6px;height:6px;border-radius:50%;background:var(--good);box-shadow:0 0 6px var(--good);}
-  .bell{
+  .icon-btn{
     background:none;border:1px solid var(--line);color:var(--ash);width:28px;height:28px;border-radius:8px;
     cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:13px;transition:all .15s ease;
   }
-  .bell.on{color:var(--ember);border-color:var(--ember-dim);}
-  .bell:hover{color:var(--paper);}
+  .icon-btn.on{color:var(--ember);border-color:var(--ember-dim);}
+  .icon-btn:hover{color:var(--paper);}
+
+  /* ---------- Call overlay ---------- */
+  .call-overlay{
+    position:absolute;inset:0;background:rgba(10,12,17,0.97);
+    display:none;flex-direction:column;align-items:center;justify-content:center;
+    gap:18px;z-index:20;padding:24px;text-align:center;
+  }
+  .call-overlay.show{display:flex;}
+  .call-avatar{
+    width:88px;height:88px;border-radius:50%;background:var(--panel-2);border:2px solid var(--ember-dim);
+    display:flex;align-items:center;justify-content:center;font-family:'Space Mono',monospace;
+    font-size:30px;color:var(--ember);
+  }
+  .call-avatar.pulse{animation:pulse 1.4s ease-in-out infinite;}
+  @keyframes pulse{
+    0%,100%{box-shadow:0 0 0 0 rgba(255,122,69,0.35);}
+    50%{box-shadow:0 0 0 16px rgba(255,122,69,0);}
+  }
+  .call-name{font-family:'Space Mono',monospace;font-size:18px;}
+  .call-status{font-size:13px;color:var(--ash);}
+  .call-timer{font-family:'Space Mono',monospace;font-size:13px;color:var(--good);}
+  .call-video-wrap{position:relative;width:100%;height:100%;display:none;}
+  .call-video-wrap.show{display:block;}
+  video.remote-video{width:100%;height:100%;object-fit:cover;border-radius:12px;background:#000;}
+  video.local-video{
+    position:absolute;bottom:18px;right:18px;width:110px;height:82px;object-fit:cover;
+    border-radius:8px;border:1px solid var(--line);background:#000;
+  }
+  .call-controls{display:flex;gap:16px;align-items:center;z-index:1;}
+  .call-btn{
+    width:52px;height:52px;border-radius:50%;border:none;cursor:pointer;font-size:20px;
+    display:flex;align-items:center;justify-content:center;transition:transform .1s ease;
+  }
+  .call-btn:active{transform:scale(0.92);}
+  .call-btn.mute-tgl, .call-btn.cam-tgl{background:var(--panel-2);border:1px solid var(--line);color:var(--paper);}
+  .call-btn.mute-tgl.off, .call-btn.cam-tgl.off{background:var(--ember);color:#1a0f08;border-color:var(--ember);}
+  .call-btn.hangup{background:#e5484d;color:#fff;}
+  .call-btn.accept{background:var(--good);color:#0c1a12;}
+  .call-btn.decline{background:#e5484d;color:#fff;}
+  .call-controls-row{display:flex;gap:20px;position:absolute;bottom:24px;left:50%;transform:translateX(-50%);z-index:1;}
+
+  .incoming-actions{display:flex;gap:22px;}
+  #outgoingControls, #incomingControls, #connectedControls{display:none;}
+  #outgoingControls.show, #incomingControls.show, #connectedControls.show{display:flex;}
+  #callAudioUi{display:flex;flex-direction:column;align-items:center;gap:14px;}
 
   .toast{
     position:absolute;top:64px;left:50%;transform:translateX(-50%) translateY(-8px);
@@ -197,10 +243,43 @@
       <div class="room-tag">room: <span id="roomLabel"></span></div>
       <div class="life-note">
         <span class="dot"></span> messages vanish after 1 hour
-        <button class="bell" id="bellBtn" type="button" title="Toggle notifications">🔔</button>
+        <button class="icon-btn" id="voiceCallBtn" type="button" title="Voice call">📞</button>
+        <button class="icon-btn" id="videoCallBtn" type="button" title="Video call">🎥</button>
+        <button class="icon-btn" id="bellBtn" type="button" title="Toggle notifications">🔔</button>
       </div>
     </header>
     <div class="toast" id="toast"></div>
+
+    <div class="call-overlay" id="callOverlay">
+      <div class="call-video-wrap" id="callVideoWrap">
+        <video id="remoteVideo" class="remote-video" autoplay playsinline></video>
+        <video id="localVideo" class="local-video" autoplay playsinline muted></video>
+        <div class="call-controls-row">
+          <button class="call-btn mute-tgl" id="muteBtn" type="button" title="Mute">🎤</button>
+          <button class="call-btn cam-tgl" id="camBtn" type="button" title="Camera">🎥</button>
+          <button class="call-btn hangup" id="hangupBtnVideo" type="button" title="Hang up">✕</button>
+        </div>
+      </div>
+      <div id="callAudioUi">
+        <div class="call-avatar" id="callAvatar">🔥</div>
+        <div class="call-name" id="callName"></div>
+        <div class="call-status" id="callStatus"></div>
+        <div class="call-timer" id="callTimer"></div>
+        <audio id="remoteAudio" autoplay></audio>
+        <div id="outgoingControls" class="call-controls">
+          <button class="call-btn hangup" id="cancelCallBtn" type="button" title="Cancel">✕</button>
+        </div>
+        <div id="incomingControls" class="incoming-actions">
+          <button class="call-btn accept" id="acceptCallBtn" type="button" title="Accept">✓</button>
+          <button class="call-btn decline" id="declineCallBtn" type="button" title="Decline">✕</button>
+        </div>
+        <div id="connectedControls" class="call-controls">
+          <button class="call-btn mute-tgl" id="muteBtnAudio" type="button" title="Mute">🎤</button>
+          <button class="call-btn hangup" id="hangupBtnAudio" type="button" title="Hang up">✕</button>
+        </div>
+      </div>
+    </div>
+
     <div class="messages" id="messages">
       <div class="empty" id="emptyState"><span class="big">Nothing here yet</span>Say something — it'll stick around for an hour.</div>
     </div>
@@ -226,6 +305,21 @@
   let toastTimer = null;
   let audioCtx = null;
 
+  // ---- calling state ----
+  const ICE_SERVERS = [{ urls: 'stun:stun.l.google.com:19302' }, { urls: 'stun:stun1.l.google.com:19302' }];
+  let pc = null;
+  let localStream = null;
+  let currentCallId = null;
+  let callDirection = null;   // 'outgoing' | 'incoming'
+  let callState = 'idle';     // 'idle' | 'calling' | 'ringing' | 'connected'
+  let callTypeActive = null;  // 'audio' | 'video'
+  let seenSignalIds = new Set();
+  let pendingCandidates = [];
+  let ringTimer = null;
+  let callTimerInterval = null;
+  let callTimeoutTimer = null;
+  let callStartTs = null;
+
   const landing = document.getElementById('landing');
   const chatwrap = document.getElementById('chatwrap');
   const enterBtn = document.getElementById('enterBtn');
@@ -244,6 +338,30 @@
   const replyPreviewText = document.getElementById('replyPreviewText');
   const cancelReply = document.getElementById('cancelReply');
   const baseTitle = document.title;
+
+  const voiceCallBtn = document.getElementById('voiceCallBtn');
+  const videoCallBtn = document.getElementById('videoCallBtn');
+  const callOverlay = document.getElementById('callOverlay');
+  const callVideoWrap = document.getElementById('callVideoWrap');
+  const callAudioUi = document.getElementById('callAudioUi');
+  const remoteVideo = document.getElementById('remoteVideo');
+  const localVideo = document.getElementById('localVideo');
+  const remoteAudio = document.getElementById('remoteAudio');
+  const callAvatar = document.getElementById('callAvatar');
+  const callName = document.getElementById('callName');
+  const callStatus = document.getElementById('callStatus');
+  const callTimer = document.getElementById('callTimer');
+  const outgoingControls = document.getElementById('outgoingControls');
+  const incomingControls = document.getElementById('incomingControls');
+  const connectedControls = document.getElementById('connectedControls');
+  const cancelCallBtn = document.getElementById('cancelCallBtn');
+  const acceptCallBtn = document.getElementById('acceptCallBtn');
+  const declineCallBtn = document.getElementById('declineCallBtn');
+  const muteBtn = document.getElementById('muteBtn');
+  const camBtn = document.getElementById('camBtn');
+  const hangupBtnVideo = document.getElementById('hangupBtnVideo');
+  const muteBtnAudio = document.getElementById('muteBtnAudio');
+  const hangupBtnAudio = document.getElementById('hangupBtnAudio');
 
   function slugRoom(r){ return r.trim().toLowerCase().replace(/\s+/g,'-').slice(0,60); }
 
@@ -270,9 +388,17 @@
     return new Date(ts).toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'});
   }
 
+  function unlockAudio(){
+    try{
+      audioCtx = audioCtx || new (window.AudioContext || window.webkitAudioContext)();
+      if(audioCtx.state === 'suspended') audioCtx.resume();
+    }catch(e){ /* ignore */ }
+  }
+
   function beep(){
     try{
       audioCtx = audioCtx || new (window.AudioContext || window.webkitAudioContext)();
+      if(audioCtx.state === 'suspended') audioCtx.resume();
       const osc = audioCtx.createOscillator();
       const gain = audioCtx.createGain();
       osc.type = 'sine';
@@ -336,6 +462,340 @@
     replyingTo = null;
     replyPreview.classList.remove('show');
   }
+
+  // ================= Calling =================
+
+  let incomingOfferSig = null;
+
+  async function sendSignal(type, extra){
+    try{
+      await fetch('/api/signal', {
+        method:'POST',
+        headers:{'Content-Type':'application/json'},
+        body: JSON.stringify(Object.assign({
+          room, sender: myName, type, callId: currentCallId
+        }, extra || {}))
+      });
+    }catch(e){ /* ignore */ }
+  }
+
+  async function fetchSignals(){
+    try{
+      const res = await fetch('/api/signal?room=' + encodeURIComponent(room));
+      if(!res.ok) return [];
+      return await res.json();
+    }catch(e){ return []; }
+  }
+
+  function otherName(){
+    return callName.dataset.other || 'them';
+  }
+
+  function callIcon(type){ return type === 'video' ? '🎥' : '📞'; }
+
+  function showOverlay(){ callOverlay.classList.add('show'); }
+  function hideOverlay(){ callOverlay.classList.remove('show'); }
+
+  function setPanel(which){
+    [outgoingControls, incomingControls, connectedControls].forEach(el => el.classList.remove('show'));
+    if(which) which.classList.add('show');
+  }
+
+  function startRingback(){
+    stopRingback();
+    beep();
+    ringTimer = setInterval(beep, 1600);
+  }
+  function stopRingback(){
+    clearInterval(ringTimer);
+    ringTimer = null;
+  }
+
+  function startCallTimer(){
+    callStartTs = Date.now();
+    callTimerInterval = setInterval(() => {
+      const s = Math.floor((Date.now() - callStartTs) / 1000);
+      const mm = String(Math.floor(s / 60)).padStart(2,'0');
+      const ss = String(s % 60).padStart(2,'0');
+      callTimer.textContent = mm + ':' + ss;
+    }, 500);
+  }
+  function stopCallTimer(){
+    clearInterval(callTimerInterval);
+    callTimerInterval = null;
+    callTimer.textContent = '';
+  }
+
+  function resetCallUI(){
+    callState = 'idle';
+    callDirection = null;
+    incomingOfferSig = null;
+    pendingCandidates = [];
+    stopRingback();
+    stopCallTimer();
+    clearTimeout(callTimeoutTimer);
+    setPanel(null);
+    callVideoWrap.classList.remove('show');
+    callAudioUi.style.display = 'flex';
+    remoteVideo.srcObject = null;
+    localVideo.srcObject = null;
+    remoteAudio.srcObject = null;
+    callAvatar.classList.remove('pulse');
+    hideOverlay();
+  }
+
+  function teardownConnection(){
+    if(pc){
+      try{ pc.close(); }catch(e){}
+      pc = null;
+    }
+    if(localStream){
+      localStream.getTracks().forEach(t => t.stop());
+      localStream = null;
+    }
+  }
+
+  function createPeerConnection(){
+    const conn = new RTCPeerConnection({ iceServers: ICE_SERVERS });
+    conn.onicecandidate = (e) => {
+      if(e.candidate){
+        sendSignal('candidate', { candidate: e.candidate.toJSON ? e.candidate.toJSON() : e.candidate });
+      }
+    };
+    conn.ontrack = (e) => {
+      const stream = e.streams[0];
+      if(callTypeActive === 'video'){
+        remoteVideo.srcObject = stream;
+      }else{
+        remoteAudio.srcObject = stream;
+      }
+    };
+    conn.onconnectionstatechange = () => {
+      if(conn.connectionState === 'connected' && callState !== 'connected'){
+        callState = 'connected';
+        stopRingback();
+        callStatus.textContent = 'Connected';
+        setPanel(callTypeActive === 'video' ? null : connectedControls);
+        if(callTypeActive === 'video'){
+          callVideoWrap.classList.add('show');
+          callAudioUi.style.display = 'none';
+        }
+        startCallTimer();
+      }
+      if(['failed','disconnected','closed'].includes(conn.connectionState) && callState !== 'idle'){
+        showToast('Call ended');
+        endCall(false);
+      }
+    };
+    return conn;
+  }
+
+  async function getMedia(type){
+    const constraints = type === 'video'
+      ? { audio: true, video: { width: 480, height: 360 } }
+      : { audio: true, video: false };
+    return navigator.mediaDevices.getUserMedia(constraints);
+  }
+
+  async function startOutgoingCall(type){
+    if(callState !== 'idle'){ showToast('Already in a call'); return; }
+    unlockAudio();
+    if(!('mediaDevices' in navigator) || !navigator.mediaDevices.getUserMedia){
+      showToast('This browser/site can\'t access mic or camera (needs HTTPS).');
+      return;
+    }
+    currentCallId = Date.now() + '-' + Math.random().toString(36).slice(2,8);
+    callDirection = 'outgoing';
+    callState = 'calling';
+    callTypeActive = type;
+    seenSignalIds = new Set();
+
+    callName.dataset.other = '';
+    callName.textContent = 'Calling…';
+    callStatus.textContent = callIcon(type) + ' ' + (type === 'video' ? 'Video call' : 'Voice call');
+    callAvatar.textContent = type === 'video' ? '🎥' : '🔥';
+    callAvatar.classList.add('pulse');
+    callVideoWrap.classList.remove('show');
+    callAudioUi.style.display = 'flex';
+    setPanel(outgoingControls);
+    showOverlay();
+    startRingback();
+
+    try{
+      localStream = await getMedia(type);
+    }catch(e){
+      showToast('Couldn\'t access mic/camera — check browser permissions.');
+      resetCallUI();
+      return;
+    }
+    if(type === 'video'){ localVideo.srcObject = localStream; }
+
+    pc = createPeerConnection();
+    localStream.getTracks().forEach(t => pc.addTrack(t, localStream));
+
+    const offer = await pc.createOffer();
+    await pc.setLocalDescription(offer);
+    sendSignal('offer', { sdp: offer, callType: type });
+
+    callTimeoutTimer = setTimeout(() => {
+      if(callState === 'calling'){
+        showToast('No answer');
+        sendSignal('hangup');
+        endCall(false);
+      }
+    }, 30000);
+  }
+
+  function showIncomingCall(sig){
+    incomingOfferSig = sig;
+    currentCallId = sig.callId;
+    callDirection = 'incoming';
+    callState = 'ringing';
+    callTypeActive = sig.callType || 'audio';
+
+    callName.dataset.other = sig.sender;
+    callName.textContent = sig.sender;
+    callStatus.textContent = (callTypeActive === 'video' ? '🎥 Video call' : '📞 Voice call') + ' — incoming';
+    callAvatar.textContent = callTypeActive === 'video' ? '🎥' : '🔥';
+    callAvatar.classList.add('pulse');
+    callVideoWrap.classList.remove('show');
+    callAudioUi.style.display = 'flex';
+    setPanel(incomingControls);
+    showOverlay();
+    startRingback();
+    beep();
+
+    callTimeoutTimer = setTimeout(() => {
+      if(callState === 'ringing'){
+        endCall(false);
+      }
+    }, 30000);
+  }
+
+  async function acceptIncomingCall(){
+    if(!incomingOfferSig) return;
+    unlockAudio();
+    clearTimeout(callTimeoutTimer);
+    stopRingback();
+    callStatus.textContent = 'Connecting…';
+
+    try{
+      localStream = await getMedia(callTypeActive);
+    }catch(e){
+      showToast('Couldn\'t access mic/camera — check browser permissions.');
+      sendSignal('decline');
+      endCall(false);
+      return;
+    }
+    if(callTypeActive === 'video'){ localVideo.srcObject = localStream; }
+
+    pc = createPeerConnection();
+    localStream.getTracks().forEach(t => pc.addTrack(t, localStream));
+
+    await pc.setRemoteDescription(new RTCSessionDescription(incomingOfferSig.sdp));
+    for(const c of pendingCandidates){
+      try{ await pc.addIceCandidate(new RTCIceCandidate(c)); }catch(e){}
+    }
+    pendingCandidates = [];
+
+    const answer = await pc.createAnswer();
+    await pc.setLocalDescription(answer);
+    sendSignal('answer', { sdp: answer });
+    incomingOfferSig = null;
+  }
+
+  function declineIncomingCall(){
+    sendSignal('decline');
+    endCall(false);
+  }
+
+  function endCall(notifyPeer){
+    if(notifyPeer && callState !== 'idle'){
+      sendSignal('hangup');
+    }
+    teardownConnection();
+    resetCallUI();
+  }
+
+  function toggleMute(){
+    if(!localStream) return;
+    const track = localStream.getAudioTracks()[0];
+    if(!track) return;
+    track.enabled = !track.enabled;
+    const muted = !track.enabled;
+    [muteBtn, muteBtnAudio].forEach(b => {
+      b.classList.toggle('off', muted);
+      b.textContent = muted ? '🔇' : '🎤';
+    });
+  }
+
+  function toggleCam(){
+    if(!localStream) return;
+    const track = localStream.getVideoTracks()[0];
+    if(!track) return;
+    track.enabled = !track.enabled;
+    camBtn.classList.toggle('off', !track.enabled);
+    camBtn.textContent = track.enabled ? '🎥' : '📷';
+  }
+
+  async function pollSignals(){
+    const sigs = await fetchSignals();
+    for(const s of sigs){
+      if(seenSignalIds.has(s.id)) continue;
+      seenSignalIds.add(s.id);
+      if(s.sender === myName) continue;
+
+      if(s.type === 'offer'){
+        if(callState !== 'idle'){
+          // busy — auto-decline
+          fetch('/api/signal', {
+            method:'POST', headers:{'Content-Type':'application/json'},
+            body: JSON.stringify({ room, sender: myName, type: 'busy', callId: s.callId })
+          });
+          continue;
+        }
+        showIncomingCall(s);
+        continue;
+      }
+
+      if(s.callId !== currentCallId) continue; // signal for a different/stale call
+
+      if(s.type === 'answer' && callState === 'calling' && pc){
+        await pc.setRemoteDescription(new RTCSessionDescription(s.sdp));
+        for(const c of pendingCandidates){
+          try{ await pc.addIceCandidate(new RTCIceCandidate(c)); }catch(e){}
+        }
+        pendingCandidates = [];
+      }else if(s.type === 'candidate'){
+        if(pc && pc.remoteDescription && pc.remoteDescription.type){
+          try{ await pc.addIceCandidate(new RTCIceCandidate(s.candidate)); }catch(e){}
+        }else{
+          pendingCandidates.push(s.candidate);
+        }
+      }else if(s.type === 'hangup' || s.type === 'decline'){
+        showToast(s.type === 'decline' ? 'Call declined' : 'Call ended');
+        teardownConnection();
+        resetCallUI();
+      }else if(s.type === 'busy'){
+        showToast(otherName() + ' is on another call');
+        teardownConnection();
+        resetCallUI();
+      }
+    }
+  }
+
+  voiceCallBtn.addEventListener('click', () => startOutgoingCall('audio'));
+  videoCallBtn.addEventListener('click', () => startOutgoingCall('video'));
+  cancelCallBtn.addEventListener('click', () => endCall(true));
+  acceptCallBtn.addEventListener('click', acceptIncomingCall);
+  declineCallBtn.addEventListener('click', declineIncomingCall);
+  hangupBtnAudio.addEventListener('click', () => endCall(true));
+  hangupBtnVideo.addEventListener('click', () => endCall(true));
+  muteBtn.addEventListener('click', toggleMute);
+  muteBtnAudio.addEventListener('click', toggleMute);
+  camBtn.addEventListener('click', toggleCam);
+
+  // ================= /Calling =================
 
   function renderAll(list){
     messagesEl.innerHTML = '';
@@ -422,10 +882,12 @@
   async function poll(){
     const fresh = await fetchMessages();
     appendNew(fresh);
+    pollSignals();
   }
 
   enterBtn.addEventListener('click', async () => {
     errMsg.textContent = '';
+    unlockAudio();
     const nm = nameInput.value.trim();
     const rm = slugRoom(roomInput.value);
     if(!nm){ errMsg.textContent = 'Enter your name.'; return; }
