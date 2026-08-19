@@ -333,6 +333,10 @@
 
 <script>
 (function(){
+  // Paste the VAPID *public* key here after you generate a keypair (see README
+  // step 6). It's safe for this to be public — it's not the secret half.
+  const VAPID_PUBLIC_KEY = 'PASTE_YOUR_VAPID_PUBLIC_KEY_HERE';
+
   const ICON_MIC = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" width="20" height="20"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" y1="19" x2="12" y2="23"/><line x1="8" y1="23" x2="16" y2="23"/></svg>';
   const ICON_MIC_OFF = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" width="20" height="20"><line x1="1" y1="1" x2="23" y2="23"/><path d="M9 9v3a3 3 0 0 0 5.12 2.12M15 9.34V4a3 3 0 0 0-5.94-.6"/><path d="M17 16.95A7 7 0 0 1 5 12v-2m14 0v2a7 7 0 0 1-.11 1.23"/><line x1="12" y1="19" x2="12" y2="23"/><line x1="8" y1="23" x2="16" y2="23"/></svg>';
   const ICON_CAM = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" width="20" height="20"><path d="M23 7l-7 5 7 5V7z"/><rect x="1" y="5" width="15" height="14" rx="2.5"/></svg>';
@@ -485,6 +489,11 @@
     showToast(m.sender + ': ' + (m.text.length > 60 ? m.text.slice(0,60) + '…' : m.text));
     if(document.hidden || !document.hasFocus()){
       flashTitle('💬 New message');
+      // NOTE: this in-page Notification only fires while this tab/app is
+      // actually alive and running. It's a nice-to-have for desktop tabs.
+      // Real background notifications (phone locked, app closed) come
+      // through the service worker's 'push' handler instead — see
+      // subscribeForPush() below.
       if(notifyEnabled && 'Notification' in window && Notification.permission === 'granted'){
         try{
           const n = new Notification(m.sender + ' — ' + room, { body: m.text, tag: 'vanish-' + room });
@@ -505,6 +514,68 @@
   function clearReplyTarget(){
     replyingTo = null;
     replyPreview.classList.remove('show');
+  }
+
+  // ================= Push notifications (real, background-capable) =================
+
+  function urlBase64ToUint8Array(base64String){
+    const padding = '='.repeat((4 - base64String.length % 4) % 4);
+    const base64 = (base64String + padding).replace(/-/g, '+').replace(/_/g, '/');
+    const rawData = atob(base64);
+    const outputArray = new Uint8Array(rawData.length);
+    for(let i = 0; i < rawData.length; ++i){
+      outputArray[i] = rawData.charCodeAt(i);
+    }
+    return outputArray;
+  }
+
+  // Registers this device to receive push notifications for `room` as
+  // `myName`, even if the app is closed or the phone is locked. Requires:
+  //  - HTTPS (Vercel gives you this automatically)
+  //  - VAPID_PUBLIC_KEY set above, matching the server env vars
+  //  - On iPhone: the app must be added to the Home Screen and opened from
+  //    that icon (not a Safari tab), iOS 16.4+.
+  async function subscribeForPush(){
+    if(!('serviceWorker' in navigator) || !('PushManager' in window)){
+      return false; // browser doesn't support push at all
+    }
+    if(!VAPID_PUBLIC_KEY || VAPID_PUBLIC_KEY.indexOf('PASTE_YOUR') === 0){
+      return false; // server owner hasn't configured push yet
+    }
+    try{
+      const reg = await navigator.serviceWorker.ready;
+      let sub = await reg.pushManager.getSubscription();
+      if(!sub){
+        sub = await reg.pushManager.subscribe({
+          userVisibleOnly: true,
+          applicationServerKey: urlBase64ToUint8Array(VAPID_PUBLIC_KEY)
+        });
+      }
+      await fetch('/api/subscribe', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({ room, sender: myName, subscription: sub })
+      });
+      return true;
+    }catch(e){
+      console.error('push subscribe failed', e);
+      return false;
+    }
+  }
+
+  async function unsubscribeFromPush(){
+    try{
+      if('serviceWorker' in navigator){
+        const reg = await navigator.serviceWorker.ready;
+        const sub = await reg.pushManager.getSubscription();
+        if(sub) await sub.unsubscribe();
+      }
+      await fetch('/api/subscribe', {
+        method: 'DELETE',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({ room, sender: myName })
+      });
+    }catch(e){ /* ignore */ }
   }
 
   // ================= Calling =================
@@ -952,6 +1023,14 @@
 
     pollTimer = setInterval(poll, 2000);
     msgInput.focus();
+
+    // If notification permission was already granted in a previous visit,
+    // silently (re)subscribe this device for push so it stays current.
+    if('Notification' in window && Notification.permission === 'granted'){
+      notifyEnabled = true;
+      bellBtn.classList.add('on');
+      subscribeForPush();
+    }
   });
 
   roomInput.addEventListener('keydown', (e) => { if(e.key === 'Enter') enterBtn.click(); });
@@ -964,13 +1043,24 @@
     if(Notification.permission === 'granted'){
       notifyEnabled = !notifyEnabled;
       bellBtn.classList.toggle('on', notifyEnabled);
-      showToast(notifyEnabled ? 'Notifications on' : 'Notifications off');
+      if(notifyEnabled){
+        const ok = await subscribeForPush();
+        showToast(ok ? 'Notifications on' : 'Notifications on (background push not set up — see README)');
+      }else{
+        unsubscribeFromPush();
+        showToast('Notifications off');
+      }
       return;
     }
     const perm = await Notification.requestPermission();
     notifyEnabled = perm === 'granted';
     bellBtn.classList.toggle('on', notifyEnabled);
-    showToast(notifyEnabled ? 'Notifications on' : 'Notifications blocked');
+    if(notifyEnabled){
+      const ok = await subscribeForPush();
+      showToast(ok ? 'Notifications on' : 'Notifications on (background push not set up — see README)');
+    }else{
+      showToast('Notifications blocked');
+    }
   });
 
   cancelReply.addEventListener('click', clearReplyTarget);

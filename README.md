@@ -19,7 +19,8 @@ your friend. Setup takes about 5 minutes, one time only.
 
 Easiest way (no command line):
 1. Put this whole folder into a GitHub repository (create a new repo, upload
-   these files: `index.html`, `api/messages.js`, `package.json`).
+   these files: `index.html`, `api/messages.js`, `api/signal.js`,
+   `api/subscribe.js`, `sw.js`, `manifest.json`, `package.json`).
 2. Go to https://vercel.com, sign up free, click "Add New… → Project".
 3. Import that GitHub repo. Leave all settings as default and click Deploy.
 
@@ -60,3 +61,53 @@ arrow) → "Add to Home Screen" → Add.
 
 **Desktop (Chrome/Edge):** open the site → click the install icon (⊕ or a
 small monitor icon) in the address bar → Install.
+
+## 6. (Optional) Turn on real notifications — including on iPhone
+
+Tapping the bell 🔔 in the chat asks for notification permission, but by
+default that only works while the app is actually open and running — it's
+useless once the app is closed or your phone is locked.
+
+To get real background notifications, this version adds **Web Push**. It
+needs one extra one-time setup step: a VAPID keypair (this is just how Web
+Push proves your server is allowed to send to a given subscriber — nothing
+to sign up for, you generate it yourself).
+
+1. On your own computer, with Node.js installed, run:
+   ```
+   npx web-push generate-vapid-keys
+   ```
+   This prints a **Public Key** and a **Private Key**.
+
+2. Open `index.html` in this project and find this line near the top of
+   the `<script>` block:
+   ```js
+   const VAPID_PUBLIC_KEY = 'PASTE_YOUR_VAPID_PUBLIC_KEY_HERE';
+   ```
+   Replace the placeholder with the **Public Key** you just generated, then
+   redeploy (push the change to GitHub, or `vercel` again).
+
+3. In Vercel → Settings → Environment Variables, add:
+   - `VAPID_PUBLIC_KEY` = the same public key
+   - `VAPID_PRIVATE_KEY` = the private key from step 1
+   - `VAPID_SUBJECT` = `mailto:` + your email (any email, used only if a
+     push service needs to contact you about your server, e.g. abuse)
+   Then redeploy.
+
+4. On each phone, **open the installed app from its home screen icon**
+   (not from a Safari/Chrome tab) and tap the bell 🔔. Allow notifications
+   when prompted.
+
+**Important iPhone-specific notes:**
+- Requires **iOS 16.4 or later**.
+- The app must have been **added to the Home Screen** and opened **from
+  that icon** — Safari tabs (even pinned ones) cannot receive background
+  push on iOS.
+- If it still doesn't work, check Settings → Notifications → Vanish on the
+  phone and make sure notifications are allowed there too.
+- Android Chrome and desktop Chrome/Edge don't have these restrictions —
+  push works there even from a normal browser tab, as soon as you grant
+  permission.
+
+If you skip this whole section, the app still works fine — you just won't
+get notified of new messages while the app is closed or backgrounded.
