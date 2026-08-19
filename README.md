@@ -111,3 +111,20 @@ to sign up for, you generate it yourself).
 
 If you skip this whole section, the app still works fine — you just won't
 get notified of new messages while the app is closed or backgrounded.
+
+## 7. About voice/video calls when the app is closed or the phone is locked
+
+Once push is set up (step 6), an incoming call also sends a push
+notification — "X is calling you" — so the other person's phone can alert
+them even if the app isn't open. Tapping that notification opens the app,
+which then picks up the still-ringing call automatically.
+
+**What this can't do:** no website — installed as a home-screen app or
+not — is allowed to silently open your microphone and start a live call
+while fully closed or locked, on any platform. That's a deliberate OS/
+browser restriction, not a bug. So a call will always need the receiving
+person to actually tap the notification (or already have the app open) and
+accept within the ring window (45 seconds) to connect. For a call that
+rings and connects with the screen off and the app fully closed, you'd need
+a native app using Apple's PushKit/CallKit — that's a different, much
+larger project than a website.

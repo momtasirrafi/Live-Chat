@@ -26,13 +26,18 @@ self.addEventListener('push', (event) => {
   }
 
   const title = data.title || 'Vanish';
+  const isCall = !!data.call;
   const options = {
     body: data.body || 'New message',
     icon: '/icons/icon-192.png',
     badge: '/icons/icon-192.png',
-    tag: 'vanish-' + (data.room || 'chat'),
+    tag: 'vanish-' + (isCall ? 'call-' : '') + (data.room || 'chat'),
     renotify: true,
-    data: { room: data.room || '' }
+    // Calls stay on screen until tapped or the ring window passes, instead
+    // of auto-dismissing like a normal message alert.
+    requireInteraction: isCall,
+    vibrate: isCall ? [300, 150, 300, 150, 300] : [150],
+    data: { room: data.room || '', call: isCall }
   };
 
   event.waitUntil(self.registration.showNotification(title, options));
