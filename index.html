@@ -393,8 +393,8 @@
   let audioCtx = null;
 
   // ---- images, seen receipts, presence ----
-  const MAX_IMAGE_DIMENSION = 1280;   // longest side, px, before sending
-  const IMAGE_JPEG_QUALITY = 0.62;
+  const MAX_IMAGE_DIMENSION = 900;    // longest side, px, before sending
+  const IMAGE_JPEG_QUALITY = 0.55;
   const mineStatusEls = new Map();    // messageId -> status <div> (only for my own messages)
   const seenSentIds = new Set();      // ids we've already told the server we've seen
   let pendingSeenIds = [];            // queued, not-yet-flushed "I saw this" ids
@@ -482,8 +482,12 @@
         headers:{'Content-Type':'application/json'},
         body: JSON.stringify({room, sender: myName, text, replyTo: replyTo || null, image: image || null})
       });
-      return res.ok ? await res.json() : null;
-    }catch(e){ return null; }
+      const data = await res.json().catch(() => null);
+      if(!res.ok){
+        return { __error: (data && data.error) ? data.error : ('server error ' + res.status) };
+      }
+      return data;
+    }catch(e){ return { __error: 'network error: ' + e.message }; }
   }
 
   // Shrinks + re-encodes a picked image client-side before it ever hits the
@@ -526,19 +530,20 @@
     attachBtn.disabled = true;
     try{
       const dataUrl = await resizeImageFile(file);
-      if(dataUrl.length > 1500000){
+      if(dataUrl.length > 600000){
         showToast('That image is too large, even after compressing');
         return;
       }
       const replyPayload = replyingTo ? { id: replyingTo.id, sender: replyingTo.sender, text: replyingTo.text } : null;
       clearReplyTarget();
       const m = await postMessage('', replyPayload, dataUrl);
-      if(m && !renderedIds.has(m.id)){
+      if(m && !m.__error && !renderedIds.has(m.id)){
         if(emptyState.parentNode) emptyState.remove();
         addBubble(m);
         messagesEl.scrollTop = messagesEl.scrollHeight;
-      }else if(!m){
-        showToast('Couldn\'t send that photo — try again');
+      }else{
+        showToast('Photo failed: ' + (m && m.__error ? m.__error : 'unknown error'));
+        console.error('Photo send failed:', m && m.__error);
       }
     }catch(e){
       showToast('Couldn\'t process that photo');
@@ -1336,10 +1341,13 @@
     const replyPayload = replyingTo ? { id: replyingTo.id, sender: replyingTo.sender, text: replyingTo.text } : null;
     clearReplyTarget();
     const m = await postMessage(text, replyPayload);
-    if(m && !renderedIds.has(m.id)){
+    if(m && !m.__error && !renderedIds.has(m.id)){
       if(emptyState.parentNode) emptyState.remove();
       addBubble(m);
       messagesEl.scrollTop = messagesEl.scrollHeight;
+    }else if(m && m.__error){
+      showToast('Message failed: ' + m.__error);
+      console.error('Message send failed:', m.__error);
     }
   });
 })();

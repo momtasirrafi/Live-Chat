@@ -11,7 +11,8 @@
 const webpush = require('web-push');
 
 const LIFETIME_MS = 60 * 60 * 1000; // 1 hour
-const MAX_IMAGE_B64_LENGTH = 1500000; // ~1.1MB decoded — keeps Redis values and push payloads sane
+const MAX_IMAGE_B64_LENGTH = 600000; // Upstash's free tier caps request/value size around 1MB —
+                                      // this leaves headroom for the rest of the room's message history
 
 const VAPID_PUBLIC_KEY = process.env.VAPID_PUBLIC_KEY;
 const VAPID_PRIVATE_KEY = process.env.VAPID_PRIVATE_KEY;
