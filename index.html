@@ -270,6 +270,32 @@
   .attach-btn:hover{color:var(--ember);border-color:var(--ember-dim);}
   .attach-btn svg{width:19px;height:19px;}
   .attach-btn:disabled{opacity:0.5;cursor:default;}
+  .attach-btn.mic-on{color:#e5484d;border-color:#e5484d;background:rgba(229,72,77,0.1);}
+
+  form.composer.recording #msgInput,
+  form.composer.recording .send,
+  form.composer.recording #attachBtn,
+  form.composer.recording #cameraBtn{display:none;}
+  .record-bar{display:none;flex:1;align-items:center;gap:10px;background:var(--ink);border:1px solid var(--ember-dim);
+    border-radius:24px;padding:8px 8px 8px 16px;min-width:0;}
+  form.composer.recording .record-bar{display:flex;}
+  .rec-dot{width:9px;height:9px;border-radius:50%;background:#e5484d;flex-shrink:0;animation:recpulse 1.1s ease-in-out infinite;}
+  @keyframes recpulse{0%,100%{opacity:1;}50%{opacity:0.25;}}
+  .record-timer{font-family:'Space Mono',monospace;font-size:13px;color:var(--paper);flex-shrink:0;}
+  .record-hint{font-size:12px;color:var(--ash);flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+  .record-cancel, .record-send{
+    border:none;border-radius:50%;width:34px;height:34px;flex-shrink:0;cursor:pointer;
+    display:flex;align-items:center;justify-content:center;transition:transform .1s ease;
+  }
+  .record-cancel{background:var(--panel-2);color:var(--ash);}
+  .record-cancel:hover{color:var(--paper);}
+  .record-send{background:var(--ember);color:#1a0f08;}
+  .record-send:hover{background:#ff8c5e;}
+  .record-cancel:active, .record-send:active{transform:scale(0.92);}
+
+  .bubble.audio-bubble{padding:9px 12px;min-width:210px;}
+  .bubble.audio-bubble audio{width:220px;max-width:100%;height:34px;display:block;}
+  .audio-duration{font-size:11px;color:var(--ash);margin-top:4px;font-family:'Space Mono',monospace;}
 
   @media (prefers-reduced-motion: reduce){ .fuse-fill{transition:none !important;} }
 </style>
@@ -359,10 +385,24 @@
       <button type="button" id="cancelReply" title="Cancel reply"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" width="18" height="18"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button>
     </div>
     <form class="composer" id="composer">
-      <button type="button" class="attach-btn" id="attachBtn" title="Send a photo" aria-label="Send a photo">
+      <button type="button" class="attach-btn" id="attachBtn" title="Send a photo" aria-label="Send a photo from your library">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2.5"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="M21 15l-5-5L5 21"/></svg>
       </button>
       <input type="file" id="imageInput" accept="image/*" style="display:none">
+      <button type="button" class="attach-btn" id="cameraBtn" title="Take a photo" aria-label="Take a photo with your camera">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>
+      </button>
+      <input type="file" id="cameraInput" accept="image/*" capture="environment" style="display:none">
+      <button type="button" class="attach-btn" id="micBtn" title="Record a voice message" aria-label="Record a voice message">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" y1="19" x2="12" y2="23"/><line x1="8" y1="23" x2="16" y2="23"/></svg>
+      </button>
+      <div class="record-bar" id="recordBar">
+        <button type="button" class="record-cancel" id="cancelRecordBtn" title="Discard"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round" width="15" height="15"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button>
+        <span class="rec-dot"></span>
+        <span class="record-timer" id="recordTimer">0:00</span>
+        <span class="record-hint">Recording voice message…</span>
+        <button type="button" class="record-send" id="sendRecordBtn" title="Send"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" width="16" height="16"><polyline points="20 6 9 17 4 12"/></svg></button>
+      </div>
       <input type="text" id="msgInput" placeholder="Type a message…" maxlength="1000" autocomplete="off">
       <button type="submit" class="send"><svg viewBox="0 0 24 24" fill="currentColor" width="17" height="17"><path d="M2 21l21-9L2 3v7l15 2-15 2z"/></svg></button>
     </form>
@@ -395,6 +435,8 @@
   // ---- images, seen receipts, presence ----
   const MAX_IMAGE_DIMENSION = 900;    // longest side, px, before sending
   const IMAGE_JPEG_QUALITY = 0.55;
+  const AUDIO_BITS_PER_SECOND = 24000; // low bitrate — plenty for speech, keeps recordings small
+  const AUDIO_MAX_MS = 120000;         // 2 minute cap per voice message
   const mineStatusEls = new Map();    // messageId -> status <div> (only for my own messages)
   const seenSentIds = new Set();      // ids we've already told the server we've seen
   let pendingSeenIds = [];            // queued, not-yet-flushed "I saw this" ids
@@ -402,8 +444,32 @@
   let presenceHeartbeatTimer = null;
   let presenceFetchTimer = null;
 
+  // ---- voice message recording ----
+  let mediaRecorder = null;
+  let recordStream = null;
+  let recordedChunks = [];
+  let recordStartTs = null;
+  let recordTimerInterval = null;
+  let recordMaxTimeout = null;
+  let recordCancelled = false;
+
   // ---- calling state ----
-  const ICE_SERVERS = [{ urls: 'stun:stun.l.google.com:19302' }, { urls: 'stun:stun1.l.google.com:19302' }];
+  // STUN alone only works when both sides have NAT that allows a direct
+  // peer-to-peer path — a lot of real networks (mobile data, hotel/corporate
+  // WiFi, many home routers) don't allow that, and the call will ring,
+  // "accept" will register, but no audio/video will ever actually flow.
+  // TURN servers relay the media through a third party when a direct path
+  // isn't possible. These are Open Relay Project's free public TURN
+  // servers — fine to get calling working, but for heavier/production use
+  // you'd want your own (e.g. a free Twilio/Xirsys/Cloudflare TURN account,
+  // or self-hosted coturn).
+  const ICE_SERVERS = [
+    { urls: 'stun:stun.l.google.com:19302' },
+    { urls: 'stun:stun1.l.google.com:19302' },
+    { urls: 'turn:openrelay.metered.ca:80', username: 'openrelayproject', credential: 'openrelayproject' },
+    { urls: 'turn:openrelay.metered.ca:443', username: 'openrelayproject', credential: 'openrelayproject' },
+    { urls: 'turn:openrelay.metered.ca:443?transport=tcp', username: 'openrelayproject', credential: 'openrelayproject' }
+  ];
   let pc = null;
   let localStream = null;
   let currentCallId = null;
@@ -415,6 +481,7 @@
   let ringTimer = null;
   let callTimerInterval = null;
   let callTimeoutTimer = null;
+  let connectWatchdogTimer = null;
   let callStartTs = null;
 
   const landing = document.getElementById('landing');
@@ -438,6 +505,13 @@
   const presenceLabel = document.getElementById('presenceLabel');
   const attachBtn = document.getElementById('attachBtn');
   const imageInput = document.getElementById('imageInput');
+  const cameraBtn = document.getElementById('cameraBtn');
+  const cameraInput = document.getElementById('cameraInput');
+  const micBtn = document.getElementById('micBtn');
+  const recordBar = document.getElementById('recordBar');
+  const recordTimerEl = document.getElementById('recordTimer');
+  const cancelRecordBtn = document.getElementById('cancelRecordBtn');
+  const sendRecordBtn = document.getElementById('sendRecordBtn');
   const imgLightbox = document.getElementById('imgLightbox');
   const imgLightboxImg = document.getElementById('imgLightboxImg');
 
@@ -475,12 +549,16 @@
     }catch(e){ return []; }
   }
 
-  async function postMessage(text, replyTo, image){
+  async function postMessage(text, replyTo, image, audio, duration){
     try{
       const res = await fetch('/api/messages', {
         method:'POST',
         headers:{'Content-Type':'application/json'},
-        body: JSON.stringify({room, sender: myName, text, replyTo: replyTo || null, image: image || null})
+        body: JSON.stringify({
+          room, sender: myName, text, replyTo: replyTo || null,
+          image: image || null, audio: audio || null,
+          duration: (typeof duration === 'number' ? duration : null)
+        })
       });
       const data = await res.json().catch(() => null);
       if(!res.ok){
@@ -542,13 +620,156 @@
         addBubble(m);
         messagesEl.scrollTop = messagesEl.scrollHeight;
       }else{
-        showToast('Photo failed: ' + (m && m.__error ? m.__error : 'unknown error'));
+        showToast('Photo failed: ' + (m && m.__error ? m.__error : 'unknown error'), 8000);
         console.error('Photo send failed:', m && m.__error);
       }
     }catch(e){
-      showToast('Couldn\'t process that photo');
+      showToast('Couldn\'t process that photo: ' + e.message, 8000);
+      console.error('Photo processing failed:', e);
     }finally{
       attachBtn.disabled = false;
+    }
+  }
+
+  // ================= Voice messages =================
+
+  function pickSupportedAudioMime(){
+    if(!('MediaRecorder' in window)) return null;
+    const candidates = [
+      'audio/webm;codecs=opus', 'audio/webm',
+      'audio/mp4', 'audio/aac',
+      'audio/ogg;codecs=opus', 'audio/ogg'
+    ];
+    for(const c of candidates){
+      try{ if(MediaRecorder.isTypeSupported && MediaRecorder.isTypeSupported(c)) return c; }catch(e){ /* ignore */ }
+    }
+    return ''; // let the browser pick a default
+  }
+
+  function blobToDataURL(blob){
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onerror = () => reject(new Error('read failed'));
+      reader.onload = () => resolve(reader.result);
+      reader.readAsDataURL(blob);
+    });
+  }
+
+  function fmtDuration(totalSeconds){
+    const s = Math.max(0, Math.round(totalSeconds));
+    const mm = Math.floor(s / 60);
+    const ss = String(s % 60).padStart(2, '0');
+    return mm + ':' + ss;
+  }
+
+  function updateRecordTimerUI(){
+    recordTimerEl.textContent = fmtDuration((Date.now() - recordStartTs) / 1000);
+  }
+
+  async function startRecording(){
+    if(!('MediaRecorder' in window) || !navigator.mediaDevices || !navigator.mediaDevices.getUserMedia){
+      showToast('Voice messages aren\'t supported in this browser');
+      return;
+    }
+    if(mediaRecorder && mediaRecorder.state !== 'inactive') return; // already recording
+    unlockAudio();
+    try{
+      recordStream = await navigator.mediaDevices.getUserMedia({ audio: true });
+    }catch(e){
+      showToast('Couldn\'t access the microphone — check browser permissions.');
+      return;
+    }
+
+    const mimeType = pickSupportedAudioMime();
+    recordedChunks = [];
+    recordCancelled = false;
+    try{
+      mediaRecorder = mimeType
+        ? new MediaRecorder(recordStream, { mimeType, audioBitsPerSecond: AUDIO_BITS_PER_SECOND })
+        : new MediaRecorder(recordStream);
+    }catch(e){
+      // some browsers reject unsupported option combinations — fall back to defaults
+      try{ mediaRecorder = new MediaRecorder(recordStream); }
+      catch(e2){
+        showToast('Couldn\'t start recording on this device');
+        recordStream.getTracks().forEach(t => t.stop());
+        recordStream = null;
+        return;
+      }
+    }
+
+    mediaRecorder.ondataavailable = (e) => { if(e.data && e.data.size > 0) recordedChunks.push(e.data); };
+    mediaRecorder.onstop = onRecordingStopped;
+    mediaRecorder.start();
+    recordStartTs = Date.now();
+
+    composer.classList.add('recording');
+    micBtn.classList.add('mic-on');
+    recordTimerEl.textContent = '0:00';
+    recordTimerInterval = setInterval(updateRecordTimerUI, 250);
+
+    recordMaxTimeout = setTimeout(() => {
+      if(mediaRecorder && mediaRecorder.state === 'recording'){
+        showToast('Voice message limit reached (2 min)');
+        stopRecording(false);
+      }
+    }, AUDIO_MAX_MS);
+  }
+
+  function stopRecording(cancelled){
+    recordCancelled = !!cancelled;
+    clearTimeout(recordMaxTimeout);
+    clearInterval(recordTimerInterval);
+    if(mediaRecorder && mediaRecorder.state !== 'inactive'){
+      mediaRecorder.stop();
+    }else{
+      finishRecordingUI();
+    }
+  }
+
+  function finishRecordingUI(){
+    composer.classList.remove('recording');
+    micBtn.classList.remove('mic-on');
+    recordTimerEl.textContent = '0:00';
+    if(recordStream){
+      recordStream.getTracks().forEach(t => t.stop());
+      recordStream = null;
+    }
+  }
+
+  async function onRecordingStopped(){
+    const durationSeconds = (Date.now() - recordStartTs) / 1000;
+    const chunks = recordedChunks;
+    const wasCancelled = recordCancelled;
+    const recMimeType = (mediaRecorder && mediaRecorder.mimeType) || 'audio/webm';
+    recordedChunks = [];
+    finishRecordingUI();
+
+    if(wasCancelled || !chunks.length) return;
+    if(durationSeconds < 1){
+      showToast('Recording too short — press and try again');
+      return;
+    }
+
+    try{
+      const blob = new Blob(chunks, { type: recMimeType });
+      const dataUrl = await blobToDataURL(blob);
+      if(dataUrl.length > 600000){
+        showToast('That voice message is too long — try recording something shorter', 8000);
+        return;
+      }
+      const m = await postMessage('', null, null, dataUrl, durationSeconds);
+      if(m && !m.__error && !renderedIds.has(m.id)){
+        if(emptyState.parentNode) emptyState.remove();
+        addBubble(m);
+        messagesEl.scrollTop = messagesEl.scrollHeight;
+      }else{
+        showToast('Voice message failed: ' + (m && m.__error ? m.__error : 'unknown error'), 8000);
+        console.error('Voice message send failed:', m && m.__error);
+      }
+    }catch(e){
+      showToast('Couldn\'t send that voice message: ' + e.message, 8000);
+      console.error('Voice message processing failed:', e);
     }
   }
 
@@ -580,11 +801,11 @@
     }catch(e){ /* audio not available, ignore */ }
   }
 
-  function showToast(text){
+  function showToast(text, durationMs){
     toast.textContent = text;
     toast.classList.add('show');
     clearTimeout(toastTimer);
-    toastTimer = setTimeout(() => toast.classList.remove('show'), 3200);
+    toastTimer = setTimeout(() => toast.classList.remove('show'), durationMs || 3200);
   }
 
   let titleFlashTimer = null;
@@ -606,7 +827,9 @@
 
   function notifyIncoming(m){
     beep();
-    const preview = m.type === 'image' ? ('📷 ' + (m.text || 'Photo')) : m.text;
+    const preview = m.type === 'image' ? ('📷 ' + (m.text || 'Photo'))
+      : m.type === 'audio' ? '🎤 Voice message'
+      : m.text;
     showToast(m.sender + ': ' + (preview.length > 60 ? preview.slice(0,60) + '…' : preview));
     if(document.hidden || !document.hasFocus()){
       flashTitle('💬 New message');
@@ -625,7 +848,9 @@
   }
 
   function setReplyTarget(m){
-    const previewText = m.type === 'image' ? (m.text ? '📷 ' + m.text : '📷 Photo') : m.text;
+    const previewText = m.type === 'image' ? (m.text ? '📷 ' + m.text : '📷 Photo')
+      : m.type === 'audio' ? '🎤 Voice message'
+      : m.text;
     replyingTo = { id: m.id, sender: (m.sender === myName ? 'You' : m.sender), text: previewText };
     replyPreviewName.textContent = replyingTo.sender;
     replyPreviewText.textContent = replyingTo.text.length > 80 ? replyingTo.text.slice(0,80) + '…' : replyingTo.text;
@@ -865,6 +1090,23 @@
     callTimer.textContent = '';
   }
 
+  // Once both sides have exchanged offer/answer, the ICE/DTLS handshake
+  // that actually opens the audio/video path can still fail silently on
+  // some networks. This gives clear feedback instead of an infinite,
+  // unexplained "Connecting…" if that happens.
+  function startConnectWatchdog(){
+    clearTimeout(connectWatchdogTimer);
+    connectWatchdogTimer = setTimeout(() => {
+      if(callState !== 'connected' && callState !== 'idle'){
+        showToast('Still connecting… if this continues, it\'s likely a network/firewall blocking the call.', 8000);
+      }
+    }, 12000);
+  }
+  function clearConnectWatchdog(){
+    clearTimeout(connectWatchdogTimer);
+    connectWatchdogTimer = null;
+  }
+
   function resetCallUI(){
     callState = 'idle';
     callDirection = null;
@@ -872,6 +1114,7 @@
     pendingCandidates = [];
     stopRingback();
     stopCallTimer();
+    clearConnectWatchdog();
     clearTimeout(callTimeoutTimer);
     setPanel(null);
     callVideoWrap.classList.remove('show');
@@ -912,22 +1155,52 @@
         remoteAudio.srcObject = stream;
       }
     };
+
+    // Safari (especially on iOS/iPhone, which this app targets) has
+    // historically had patchy or missing support for
+    // RTCPeerConnection.connectionState — if we only listen for that, the
+    // call can actually connect (audio/video flowing) while the UI stays
+    // stuck on "Connecting…" forever. iceConnectionState is the older but
+    // much more consistently-supported signal, so we treat either one
+    // reaching a "connected" state as connected, and react to whichever
+    // event fires first.
+    let handledConnect = false;
+    let handledEnd = false;
+
+    function handleConnected(){
+      if(handledConnect || callState === 'connected') return;
+      handledConnect = true;
+      clearConnectWatchdog();
+      callState = 'connected';
+      stopRingback();
+      callStatus.textContent = 'Connected';
+      setPanel(callTypeActive === 'video' ? null : connectedControls);
+      if(callTypeActive === 'video'){
+        callVideoWrap.classList.add('show');
+        callAudioUi.style.display = 'none';
+      }
+      startCallTimer();
+    }
+
+    function handleEnded(){
+      if(handledEnd || callState === 'idle') return;
+      handledEnd = true;
+      showToast('Call ended');
+      endCall(false);
+    }
+
     conn.onconnectionstatechange = () => {
-      if(conn.connectionState === 'connected' && callState !== 'connected'){
-        callState = 'connected';
-        stopRingback();
-        callStatus.textContent = 'Connected';
-        setPanel(callTypeActive === 'video' ? null : connectedControls);
-        if(callTypeActive === 'video'){
-          callVideoWrap.classList.add('show');
-          callAudioUi.style.display = 'none';
-        }
-        startCallTimer();
-      }
-      if(['failed','disconnected','closed'].includes(conn.connectionState) && callState !== 'idle'){
-        showToast('Call ended');
-        endCall(false);
-      }
+      const state = conn.connectionState;
+      if(state === 'connected') handleConnected();
+      if(['failed','disconnected','closed'].includes(state)) handleEnded();
+    };
+    conn.oniceconnectionstatechange = () => {
+      const state = conn.iceConnectionState;
+      if(state === 'connected' || state === 'completed') handleConnected();
+      if(state === 'failed') handleEnded();
+      // NOTE: iceConnectionState can briefly report 'disconnected' on a
+      // healthy call (e.g. a momentary network blip) and often recovers on
+      // its own, so unlike 'failed' we deliberately don't hang up on it.
     };
     return conn;
   }
@@ -1044,6 +1317,7 @@
     await pc.setLocalDescription(answer);
     sendSignal('answer', { sdp: answer });
     incomingOfferSig = null;
+    startConnectWatchdog();
   }
 
   function declineIncomingCall(){
@@ -1108,6 +1382,7 @@
           try{ await pc.addIceCandidate(new RTCIceCandidate(c)); }catch(e){}
         }
         pendingCandidates = [];
+        startConnectWatchdog();
       }else if(s.type === 'candidate'){
         if(pc && pc.remoteDescription && pc.remoteDescription.type){
           try{ await pc.addIceCandidate(new RTCIceCandidate(s.candidate)); }catch(e){}
@@ -1191,6 +1466,19 @@
         cap.className = 'caption';
         cap.textContent = m.text;
         bubble.appendChild(cap);
+      }
+    }else if(m.type === 'audio' && m.audio){
+      bubble.className = 'bubble audio-bubble';
+      const audioEl = document.createElement('audio');
+      audioEl.controls = true;
+      audioEl.preload = 'metadata';
+      audioEl.src = m.audio;
+      bubble.appendChild(audioEl);
+      if(m.duration){
+        const durLabel = document.createElement('div');
+        durLabel.className = 'audio-duration';
+        durLabel.textContent = '🎤 ' + fmtDuration(m.duration);
+        bubble.appendChild(durLabel);
       }
     }else{
       bubble.className = 'bubble';
@@ -1332,6 +1620,26 @@
     imageInput.value = ''; // allow picking the same file again later
     if(file) sendImage(file);
   });
+
+  cameraBtn.addEventListener('click', () => {
+    unlockAudio();
+    cameraInput.click();
+  });
+  cameraInput.addEventListener('change', () => {
+    const file = cameraInput.files && cameraInput.files[0];
+    cameraInput.value = '';
+    if(file) sendImage(file);
+  });
+
+  micBtn.addEventListener('click', () => {
+    if(mediaRecorder && mediaRecorder.state === 'recording'){
+      stopRecording(false); // tapping the mic again while recording sends it
+    }else{
+      startRecording();
+    }
+  });
+  cancelRecordBtn.addEventListener('click', () => stopRecording(true));
+  sendRecordBtn.addEventListener('click', () => stopRecording(false));
 
   composer.addEventListener('submit', async (e) => {
     e.preventDefault();

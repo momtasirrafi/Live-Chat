@@ -13,6 +13,8 @@ const webpush = require('web-push');
 const LIFETIME_MS = 60 * 60 * 1000; // 1 hour
 const MAX_IMAGE_B64_LENGTH = 600000; // Upstash's free tier caps request/value size around 1MB —
                                       // this leaves headroom for the rest of the room's message history
+const MAX_AUDIO_B64_LENGTH = 600000; // voice messages are recorded at a low bitrate client-side,
+                                      // so this comfortably covers a couple of minutes of speech
 
 const VAPID_PUBLIC_KEY = process.env.VAPID_PUBLIC_KEY;
 const VAPID_PRIVATE_KEY = process.env.VAPID_PRIVATE_KEY;
@@ -132,14 +134,16 @@ module.exports = async (req, res) => {
         return res.status(200).json({ ok: true });
       }
 
-      // ---- send a new message (text and/or a single image) ----
+      // ---- send a new message (text, and/or a single image or voice note) ----
       const room = slugRoom(body.room);
       const sender = String(body.sender || '').trim().slice(0, 24);
       const text = String(body.text || '').trim().slice(0, 1000);
       const image = typeof body.image === 'string' && body.image ? body.image : null;
+      const audio = typeof body.audio === 'string' && body.audio ? body.audio : null;
+      const duration = Number.isFinite(body.duration) ? Math.max(0, Math.min(600, Math.round(body.duration))) : null;
 
-      if (!room || !sender || (!text && !image)) {
-        return res.status(400).json({ error: 'room, sender and text or image are required' });
+      if (!room || !sender || (!text && !image && !audio)) {
+        return res.status(400).json({ error: 'room, sender and text, image or audio are required' });
       }
       if (image) {
         if (!/^data:image\/(png|jpe?g|gif|webp);base64,/.test(image)) {
@@ -147,6 +151,14 @@ module.exports = async (req, res) => {
         }
         if (image.length > MAX_IMAGE_B64_LENGTH) {
           return res.status(400).json({ error: 'image too large' });
+        }
+      }
+      if (audio) {
+        if (!/^data:audio\/(webm|ogg|mp4|mpeg|mp3|aac|x-m4a|wav);base64,/.test(audio)) {
+          return res.status(400).json({ error: 'unsupported audio format' });
+        }
+        if (audio.length > MAX_AUDIO_B64_LENGTH) {
+          return res.status(400).json({ error: 'voice message too long' });
         }
       }
       const key = 'vanish:' + room;
@@ -170,7 +182,9 @@ module.exports = async (req, res) => {
         sender,
         text,
         image,
-        type: image ? 'image' : 'text',
+        audio,
+        duration,
+        type: image ? 'image' : (audio ? 'audio' : 'text'),
         ts: now,
         replyTo,
         seenBy: [] // filled in by the 'seen' action above once the other person views it
@@ -178,7 +192,8 @@ module.exports = async (req, res) => {
       arr.push(msg);
       await redis(['SET', key, JSON.stringify(arr)]);
 
-      await notifySubscribers(room, sender, image ? (text || '📷 Photo') : text);
+      const preview = image ? (text || '📷 Photo') : (audio ? '🎤 Voice message' : text);
+      await notifySubscribers(room, sender, preview);
 
       return res.status(200).json(msg);
     }
