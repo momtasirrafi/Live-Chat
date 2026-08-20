@@ -154,7 +154,7 @@ module.exports = async (req, res) => {
         }
       }
       if (audio) {
-        if (!/^data:audio\/(webm|ogg|mp4|mpeg|mp3|aac|x-m4a|wav);base64,/.test(audio)) {
+        if (!/^data:audio\/(webm|ogg|mp4|mpeg|mp3|aac|x-m4a|wav)(;codecs=[a-zA-Z0-9.,\-]+)?;base64,/i.test(audio)) {
           return res.status(400).json({ error: 'unsupported audio format' });
         }
         if (audio.length > MAX_AUDIO_B64_LENGTH) {
