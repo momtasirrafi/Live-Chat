@@ -84,7 +84,7 @@ async function notifySubscribers(room, sender, previewText) {
 
 module.exports = async (req, res) => {
   res.setHeader('Access-Control-Allow-Origin', '*');
-  res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
+  res.setHeader('Access-Control-Allow-Methods', 'GET, POST, DELETE, OPTIONS');
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
   if (req.method === 'OPTIONS') return res.status(200).end();
 
@@ -102,6 +102,37 @@ module.exports = async (req, res) => {
         await redis(['SET', key, JSON.stringify(fresh)]);
       }
       return res.status(200).json(fresh);
+    }
+
+    if (req.method === 'DELETE') {
+      // "Delete for everyone" — actually removes the message from the
+      // room's stored array, so it disappears from both people's screens
+      // on their next poll (see reconcileDeleted() client-side).
+      const body = typeof req.body === 'string' ? JSON.parse(req.body || '{}') : (req.body || {});
+      const room = slugRoom(body.room);
+      const id = String(body.id || '').slice(0, 64);
+      const sender = String(body.sender || '').trim().slice(0, 24);
+      if (!room || !id || !sender) {
+        return res.status(400).json({ error: 'room, id and sender are required' });
+      }
+
+      const key = 'vanish:' + room;
+      const raw = await redis(['GET', key]);
+      let arr = raw ? JSON.parse(raw) : [];
+
+      const target = arr.find(m => m.id === id);
+      if (!target) {
+        // Already gone (expired, or already deleted) — treat as success,
+        // since the end state the client wants is "this message is gone".
+        return res.status(200).json({ ok: true });
+      }
+      if (target.sender !== sender) {
+        return res.status(403).json({ error: 'only the sender can delete this for everyone' });
+      }
+
+      const next = arr.filter(m => m.id !== id);
+      await redis(['SET', key, JSON.stringify(next)]);
+      return res.status(200).json({ ok: true });
     }
 
     if (req.method === 'POST') {
