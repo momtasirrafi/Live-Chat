@@ -139,6 +139,7 @@
     width:7px;height:7px;border-radius:50%;background:var(--good);box-shadow:0 0 6px var(--good);
     flex-shrink:0;cursor:default;
   }
+  .status-dot.offline{background:var(--ash);box-shadow:none;}
   .toolbar{display:flex;align-items:center;gap:2px;flex-shrink:0;}
   .icon-btn{
     background:none;border:none;color:var(--ash);width:38px;height:38px;border-radius:12px;
@@ -217,6 +218,7 @@
   .msg{max-width:78%;display:flex;flex-direction:column;gap:5px;position:relative;}
   .msg.mine{align-self:flex-end;align-items:flex-end;}
   .msg.theirs{align-self:flex-start;align-items:flex-start;}
+  .msg-status{font-size:10px;color:var(--ash);font-family:'Space Mono',monospace;margin-top:2px;margin-right:2px;}
   .meta{font-size:10.5px;color:var(--ash);font-family:'Space Mono',monospace;display:flex;align-items:center;gap:7px;}
   .reply-btn{
     background:none;border:none;color:var(--ash);font-size:11px;cursor:pointer;padding:0;
@@ -258,11 +260,16 @@
   }
   .composer-icon-btn:hover{background:rgba(255,255,255,0.06);color:var(--paper);}
   .composer-icon-btn svg{width:20px;height:20px;}
-  .composer input{
+  .input-wrap{
     flex:1;min-width:0;background:var(--ink);border:1px solid var(--line);border-radius:22px;
-    padding:11px 17px;color:var(--paper);font-size:14.5px;outline:none;transition:border-color .15s ease;
+    display:flex;align-items:center;padding-right:6px;transition:border-color .15s ease;
   }
-  .composer input:focus{border-color:var(--ember);}
+  .input-wrap:focus-within{border-color:var(--ember);}
+  .input-wrap .composer-icon-btn{width:32px;height:32px;}
+  .composer input[type=text]{
+    flex:1;min-width:0;background:none;border:none;padding:11px 17px;color:var(--paper);
+    font-size:14.5px;outline:none;
+  }
   .send{
     background:var(--gradient);border:none;color:#20100a;width:42px;height:42px;border-radius:50%;
     font-size:17px;cursor:pointer;flex-shrink:0;display:flex;align-items:center;justify-content:center;
@@ -272,7 +279,7 @@
   .send:active{transform:scale(0.94);}
 
   .emoji-panel{
-    position:absolute;bottom:64px;left:12px;background:var(--panel-2);border:1px solid var(--line);
+    position:absolute;bottom:64px;right:55px;background:var(--panel-2);border:1px solid var(--line);
     border-radius:14px;padding:10px;display:none;grid-template-columns:repeat(6,1fr);gap:2px;
     width:252px;z-index:15;box-shadow:0 14px 32px rgba(0,0,0,0.45);
   }
@@ -295,7 +302,7 @@
   .composer-icon-btn.rec-cancel-btn{display:none;color:var(--danger);}
   .composer.recording .rec-cancel-btn{display:flex;}
   .composer.recording #attachBtn, .composer.recording #emojiBtn, .composer.recording .send{display:none;}
-  .composer.recording #msgInput{display:none;}
+  .composer.recording .input-wrap{display:none;}
   .recording-indicator{
     display:none;align-items:center;gap:9px;flex:1;min-width:0;padding:0 6px;
   }
@@ -386,7 +393,7 @@
         <div class="peer-avatar" id="peerAvatar">V</div>
         <div class="chatbar-text">
           <div class="room-tag" id="roomLabel"></div>
-          <div class="room-sub"><span class="status-dot" title="Messages vanish 1 hour after they're sent"></span>Vanishes after 1 hour</div>
+          <div class="room-sub"><span class="status-dot" id="statusDot" title="Messages vanish 1 hour after they're sent"></span><span id="statusText">Vanishes after 1 hour</span></div>
         </div>
       </div>
       <div class="toolbar">
@@ -446,9 +453,6 @@
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15V6a2 2 0 0 0-2-2H5a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2z"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="M21 15l-5-5L5 21"/></svg>
       </button>
       <input type="file" id="fileInput" accept="image/*">
-      <button type="button" class="composer-icon-btn" id="emojiBtn" title="Emoji" aria-label="Emoji">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M8 14s1.5 2 4 2 4-2 4-2"/><line x1="9" y1="9" x2="9.01" y2="9"/><line x1="15" y1="9" x2="15.01" y2="9"/></svg>
-      </button>
       <div class="emoji-panel" id="emojiPanel"></div>
 
       <div class="recording-indicator" id="recordingIndicator">
@@ -461,7 +465,12 @@
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/></svg>
       </button>
 
-      <input type="text" id="msgInput" placeholder="Type a message…" maxlength="1000" autocomplete="off">
+      <div class="input-wrap">
+        <input type="text" id="msgInput" placeholder="Type a message…" maxlength="1000" autocomplete="off">
+        <button type="button" class="composer-icon-btn" id="emojiBtn" title="Emoji" aria-label="Emoji">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M8 14s1.5 2 4 2 4-2 4-2"/><line x1="9" y1="9" x2="9.01" y2="9"/><line x1="15" y1="9" x2="15.01" y2="9"/></svg>
+        </button>
+      </div>
 
       <button type="button" class="composer-icon-btn mic-btn" id="micBtn" title="Record voice message" aria-label="Record voice message">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" y1="19" x2="12" y2="23"/><line x1="8" y1="23" x2="16" y2="23"/></svg>
@@ -496,6 +505,7 @@
   let room = null;
   let myName = null;
   let pollTimer = null;
+  let presenceTimer = null;
   let renderedIds = new Set();
   let notifyEnabled = false;
   let replyingTo = null; // { id, sender, text }
@@ -679,6 +689,106 @@
 
   function fmtClock(ts){
     return new Date(ts).toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'});
+  }
+
+  function formatLastSeen(lastSeen, online) {
+    if (online) return 'Active now';
+    if (!lastSeen) return 'Vanishes after 1 hour';
+    const diffMs = Date.now() - lastSeen;
+    const diffSec = Math.floor(diffMs / 1000);
+    if (diffSec < 60) return 'Active now';
+    const diffMin = Math.floor(diffSec / 60);
+    if (diffMin < 60) return `Active ${diffMin}m ago`;
+    const diffHr = Math.floor(diffMin / 60);
+    if (diffHr < 24) return `Active ${diffHr}h ago`;
+    const diffDays = Math.floor(diffHr / 24);
+    return `Active ${diffDays}d ago`;
+  }
+
+  async function pollPresence() {
+    if (!room || !myName) return;
+    try {
+      // 1. Post heartbeat
+      await fetch('/api/presence', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ room, sender: myName })
+      });
+
+      // 2. Fetch presence
+      const res = await fetch('/api/presence?room=' + encodeURIComponent(room));
+      if (!res.ok) return;
+      const data = await res.json();
+
+      // 3. Find the peer (anyone who is not myName)
+      const peer = data.users.find(u => u.name !== myName);
+      const statusDot = document.getElementById('statusDot');
+      const statusTextEl = document.getElementById('statusText');
+
+      if (peer) {
+        roomLabel.textContent = peer.name;
+        peerAvatar.textContent = peer.name.charAt(0).toUpperCase();
+        
+        const statusText = formatLastSeen(peer.lastSeen, peer.online);
+        if (statusTextEl) {
+          statusTextEl.textContent = statusText;
+        }
+        if (statusDot) {
+          statusDot.classList.toggle('offline', !peer.online);
+          statusDot.title = peer.online ? 'Online' : 'Last seen ' + fmtClock(peer.lastSeen);
+        }
+      } else {
+        // Fallback
+        roomLabel.textContent = room;
+        peerAvatar.textContent = room.charAt(0).toUpperCase();
+        if (statusTextEl) {
+          statusTextEl.textContent = 'Vanishes after 1 hour';
+        }
+        if (statusDot) {
+          statusDot.classList.add('offline');
+          statusDot.title = 'Messages vanish 1 hour after they\'re sent';
+        }
+      }
+    } catch (e) { /* ignore */ }
+  }
+
+  async function markAsSeen(ids) {
+    if (!ids || !ids.length) return;
+    try {
+      await fetch('/api/messages', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ room, action: 'seen', viewer: myName, ids })
+      });
+    } catch (e) { /* ignore */ }
+  }
+
+  function getMessageStatusText(m) {
+    if (m.sender !== myName) return '';
+    if (!m.seenBy || m.seenBy.length === 0) return 'Sent';
+    const peerSeen = m.seenBy.find(s => s.name !== myName);
+    if (peerSeen) {
+      return 'Seen ' + fmtClock(peerSeen.ts);
+    }
+    return 'Sent';
+  }
+
+  function updateMessageStatusInDOM(m) {
+    if (m.sender !== myName) return;
+    const wrap = document.querySelector(`.msg[data-id="${m.id}"]`);
+    if (!wrap) return;
+    let statusEl = wrap.querySelector('.msg-status');
+    if (!statusEl) {
+      statusEl = document.createElement('div');
+      statusEl.className = 'msg-status';
+      const fuse = wrap.querySelector('.fuse');
+      if (fuse) {
+        wrap.insertBefore(statusEl, fuse);
+      } else {
+        wrap.appendChild(statusEl);
+      }
+    }
+    statusEl.textContent = getMessageStatusText(m);
   }
 
   function unlockAudio(){
@@ -1686,6 +1796,14 @@
     if(menu) wrap.appendChild(menu);
     if(quote) wrap.appendChild(quote);
     wrap.appendChild(bubble);
+
+    if(m.sender === myName && !isSending){
+      const statusEl = document.createElement('div');
+      statusEl.className = 'msg-status';
+      statusEl.textContent = getMessageStatusText(m);
+      wrap.appendChild(statusEl);
+    }
+
     if(!isSending) wrap.appendChild(fuse);
     messagesEl.appendChild(wrap);
 
@@ -1717,6 +1835,8 @@
         addBubble(m);
         added = true;
         if(m.sender !== myName) notifyIncoming(m);
+      } else {
+        updateMessageStatusInDOM(m);
       }
     });
     if(added) messagesEl.scrollTop = messagesEl.scrollHeight;
@@ -1738,6 +1858,15 @@
 
   async function poll(){
     const fresh = await fetchMessages();
+
+    // Mark incoming messages as seen
+    const unseenIds = fresh
+      .filter(m => m.sender !== myName && (!m.seenBy || !m.seenBy.some(s => s.name === myName)))
+      .map(m => m.id);
+    if(unseenIds.length > 0){
+      await markAsSeen(unseenIds);
+    }
+
     appendNew(fresh);
     reconcileDeleted(fresh);
     pollSignals();
@@ -1764,6 +1893,8 @@
     renderAll(fresh);
 
     pollTimer = setInterval(poll, 2000);
+    presenceTimer = setInterval(pollPresence, 10000);
+    pollPresence();
     msgInput.focus();
 
     // If notification permission was already granted in a previous visit,
