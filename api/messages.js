@@ -171,7 +171,13 @@ module.exports = async (req, res) => {
       const text = String(body.text || '').trim().slice(0, 1000);
       const image = typeof body.image === 'string' && body.image ? body.image : null;
       const audio = typeof body.audio === 'string' && body.audio ? body.audio : null;
-      const duration = Number.isFinite(body.duration) ? Math.max(0, Math.min(600, Math.round(body.duration))) : null;
+      // Accept either field name: the client has historically posted
+      // `audioDuration`, while this endpoint reads `duration`. Taking both
+      // keeps old and new clients working instead of silently dropping the
+      // length and rendering every voice note as 0:00.
+      const rawDuration = Number.isFinite(body.duration) ? body.duration
+        : (Number.isFinite(body.audioDuration) ? body.audioDuration : null);
+      const duration = rawDuration === null ? null : Math.max(0, Math.min(600, Math.round(rawDuration)));
 
       if (!room || !sender || (!text && !image && !audio)) {
         return res.status(400).json({ error: 'room, sender and text, image or audio are required' });
