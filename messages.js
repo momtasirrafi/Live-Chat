@@ -43,7 +43,7 @@ function slugRoom(r) {
   return String(r || '').trim().toLowerCase().replace(/\s+/g, '-').slice(0, 60);
 }
 
-async function notifySubscribers(room, sender, text, hasImage) {
+async function notifySubscribers(room, sender, text, hasImage, hasAudio) {
   if (!VAPID_PUBLIC_KEY || !VAPID_PRIVATE_KEY) return; // push not configured yet
 
   try {
@@ -53,7 +53,7 @@ async function notifySubscribers(room, sender, text, hasImage) {
 
     const bodyText = text && text.length
       ? (text.length > 120 ? text.slice(0, 120) + '…' : text)
-      : (hasImage ? '📷 Sent a photo' : '');
+      : (hasAudio ? '🎤 Sent a voice message' : (hasImage ? '📷 Sent a photo' : ''));
 
     const payload = JSON.stringify({
       title: sender,
@@ -84,7 +84,7 @@ async function notifySubscribers(room, sender, text, hasImage) {
 
 module.exports = async (req, res) => {
   res.setHeader('Access-Control-Allow-Origin', '*');
-  res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
+  res.setHeader('Access-Control-Allow-Methods', 'GET, POST, DELETE, OPTIONS');
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
   if (req.method === 'OPTIONS') return res.status(200).end();
 
@@ -110,9 +110,11 @@ module.exports = async (req, res) => {
       const sender = String(body.sender || '').trim().slice(0, 24);
       const text = String(body.text || '').trim().slice(0, 1000);
       const image = typeof body.image === 'string' ? body.image : null;
+      const audio = typeof body.audio === 'string' ? body.audio : null;
+      const audioDuration = Number.isFinite(body.audioDuration) ? Math.max(0, Math.round(body.audioDuration)) : null;
 
-      if (!room || !sender || (!text && !image)) {
-        return res.status(400).json({ error: 'room, sender and text or image are required' });
+      if (!room || !sender || (!text && !image && !audio)) {
+        return res.status(400).json({ error: 'room, sender and text, image or audio are required' });
       }
       if (image) {
         if (!image.startsWith('data:image/')) {
@@ -120,6 +122,14 @@ module.exports = async (req, res) => {
         }
         if (image.length > 700000) {
           return res.status(400).json({ error: 'image too large — try a smaller photo' });
+        }
+      }
+      if (audio) {
+        if (!audio.startsWith('data:audio/')) {
+          return res.status(400).json({ error: 'invalid audio' });
+        }
+        if (audio.length > 750000) {
+          return res.status(400).json({ error: 'recording too long — try a shorter one' });
         }
       }
       const key = 'vanish:' + room;
@@ -143,15 +153,46 @@ module.exports = async (req, res) => {
         sender,
         text,
         image: image || null,
+        audio: audio || null,
+        audioDuration: audio ? audioDuration : null,
         ts: now,
         replyTo
       };
       arr.push(msg);
       await redis(['SET', key, JSON.stringify(arr)]);
 
-      await notifySubscribers(room, sender, text, !!image);
+      await notifySubscribers(room, sender, text, !!image, !!audio);
 
       return res.status(200).json(msg);
+    }
+
+    if (req.method === 'DELETE') {
+      const body = typeof req.body === 'string' ? JSON.parse(req.body || '{}') : (req.body || {});
+      const room = slugRoom(body.room);
+      const id = String(body.id || '');
+      const sender = String(body.sender || '').trim().slice(0, 24);
+      if (!room || !id || !sender) {
+        return res.status(400).json({ error: 'room, id and sender are required' });
+      }
+      const key = 'vanish:' + room;
+
+      const raw = await redis(['GET', key]);
+      let arr = raw ? JSON.parse(raw) : [];
+      const target = arr.find(m => m.id === id);
+      if (!target) {
+        // Already gone (expired or already deleted) — treat as success so
+        // the client's UI still cleans up.
+        return res.status(200).json({ ok: true });
+      }
+      if (target.sender !== sender) {
+        return res.status(403).json({ error: 'You can only delete your own messages for everyone' });
+      }
+
+      const now = Date.now();
+      arr = arr.filter(m => m.id !== id && now - m.ts < LIFETIME_MS);
+      await redis(['SET', key, JSON.stringify(arr)]);
+
+      return res.status(200).json({ ok: true });
     }
 
     return res.status(405).json({ error: 'method not allowed' });
