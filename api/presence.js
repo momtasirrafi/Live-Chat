@@ -14,6 +14,12 @@
 
 const ONLINE_TTL_SECONDS = 20;
 
+// How long a name stays in the room's participant set after it was last seen.
+// Generous next to the 1-hour message lifetime; it exists only to stop the set
+// growing forever and to keep abandoned names out of the "who am I talking to"
+// lookup.
+const PARTICIPANT_TTL_MS = 24 * 60 * 60 * 1000;
+
 async function redis(cmd) {
   const url = process.env.UPSTASH_REDIS_REST_URL;
   const token = process.env.UPSTASH_REDIS_REST_TOKEN;
@@ -63,7 +69,8 @@ module.exports = async (req, res) => {
       if (!room) return res.status(400).json({ error: 'room is required' });
 
       const members = (await redis(['SMEMBERS', 'vanish:participants:' + room])) || [];
-      const users = await Promise.all(members.map(async (name) => {
+      const now = Date.now();
+      const all = await Promise.all(members.map(async (name) => {
         const [onlineRaw, lastSeenRaw] = await Promise.all([
           redis(['GET', 'vanish:online:' + room + ':' + name]),
           redis(['GET', 'vanish:lastseen:' + room + ':' + name])
@@ -74,6 +81,26 @@ module.exports = async (req, res) => {
           lastSeen: lastSeenRaw ? Number(lastSeenRaw) : null
         };
       }));
+
+      // The participants set is append-only, so without this it accumulates
+      // every name that ever joined the room — forever, with no TTL. That both
+      // grows unboundedly in Redis and lets a long-gone name be picked as "the
+      // other person" in the header. Messages only live an hour, so anyone
+      // unseen for a day has nothing left here to be part of.
+      const stale = all.filter(u => !u.online && (u.lastSeen === null || now - u.lastSeen > PARTICIPANT_TTL_MS));
+      if (stale.length) {
+        await Promise.all(stale.map(async (u) => {
+          await redis(['SREM', 'vanish:participants:' + room, u.name]);
+          await redis(['DEL', 'vanish:lastseen:' + room + ':' + u.name]);
+        }));
+      }
+
+      // Online first, then most recently seen, so a client can take users[0]
+      // as the best guess at who it is actually talking to.
+      const users = all
+        .filter(u => !stale.includes(u))
+        .sort((a, b) => (b.online - a.online) || ((b.lastSeen || 0) - (a.lastSeen || 0)));
+
       return res.status(200).json({ room, users });
     }
 

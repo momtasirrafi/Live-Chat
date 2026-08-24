@@ -765,8 +765,17 @@
       if (!res.ok) return;
       const data = await res.json();
 
-      // 3. Find the peer (anyone who is not myName)
-      const peer = data.users.find(u => u.name !== myName);
+      // 3. Find the peer. `vanish:participants:<room>` is an append-only set,
+      // so it also holds every name that ever joined — a typo, an old
+      // nickname, someone who dropped in once. Taking the first non-me entry
+      // meant SMEMBERS order decided whose name and status the header showed,
+      // which is how a room ends up permanently labelled with a stale name
+      // and "Active 3d ago". Prefer whoever is actually online, then fall
+      // back to the most recently seen.
+      const others = data.users.filter(u => u.name !== myName);
+      const peer = others.find(u => u.online)
+        || others.slice().sort((a, b) => (b.lastSeen || 0) - (a.lastSeen || 0))[0]
+        || null;
       const statusDot = document.getElementById('statusDot');
       const statusTextEl = document.getElementById('statusText');
 
@@ -1453,6 +1462,13 @@
     camBtn.classList.remove('off');
     camBtn.innerHTML = ICON_CAM;
     hideOverlay();
+    // The visibilitychange handler only stands the poll loop down if no call
+    // was in progress at the moment we were backgrounded. A call that then
+    // ends while the app is still hidden would leave both timers running
+    // indefinitely — the exact battery/quota drain that check exists to stop.
+    // This is the one place callState returns to 'idle', so it covers a local
+    // hangup and a remote hangup/decline/busy alike.
+    if(document.hidden) stopPolling();
   }
 
   function teardownConnection(){
@@ -1916,7 +1932,10 @@
       .filter(m => m.sender !== myName && (!m.seenBy || !m.seenBy.some(s => s.name === myName)))
       .map(m => m.id);
     if(unseenIds.length > 0){
-      await markAsSeen(unseenIds);
+      // Deliberately not awaited. The receipt is for the other person's
+      // benefit, so blocking our own render on that round-trip delayed every
+      // incoming message by the latency of a second request.
+      markAsSeen(unseenIds);
     }
 
     appendNew(fresh);
