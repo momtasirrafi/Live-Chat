@@ -7,10 +7,6 @@
 // are set) to anyone in the room who has subscribed via /api/subscribe —
 // this is what lets a message reach a closed/backgrounded app, including
 // an installed iPhone home-screen app.
-//
-// PATCH lets the original sender edit a message's text after sending it.
-// The message keeps its original id/ts (so it doesn't jump position or
-// reset its vanish timer) but gets `edited: true` and an `editedTs`.
 
 const webpush = require('web-push');
 
@@ -84,7 +80,7 @@ async function notifySubscribers(room, sender, text) {
 
 module.exports = async (req, res) => {
   res.setHeader('Access-Control-Allow-Origin', '*');
-  res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PATCH, OPTIONS');
+  res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
   if (req.method === 'OPTIONS') return res.status(200).end();
 
@@ -133,8 +129,6 @@ module.exports = async (req, res) => {
         sender,
         text,
         ts: now,
-        edited: false,
-        editedTs: null,
         replyTo
       };
       arr.push(msg);
@@ -143,40 +137,6 @@ module.exports = async (req, res) => {
       await notifySubscribers(room, sender, text);
 
       return res.status(200).json(msg);
-    }
-
-    if (req.method === 'PATCH') {
-      const body = typeof req.body === 'string' ? JSON.parse(req.body || '{}') : (req.body || {});
-      const room = slugRoom(body.room);
-      const sender = String(body.sender || '').trim().slice(0, 24);
-      const id = String(body.id || '').trim().slice(0, 64);
-      const text = String(body.text || '').trim().slice(0, 1000);
-      if (!room || !sender || !id || !text) {
-        return res.status(400).json({ error: 'room, sender, id and text are required' });
-      }
-      const key = 'vanish:' + room;
-
-      const raw = await redis(['GET', key]);
-      let arr = raw ? JSON.parse(raw) : [];
-      const now = Date.now();
-      arr = arr.filter(m => now - m.ts < LIFETIME_MS);
-
-      const idx = arr.findIndex(m => m.id === id);
-      if (idx === -1) {
-        return res.status(404).json({ error: 'message not found (it may have already vanished)' });
-      }
-      if (arr[idx].sender !== sender) {
-        return res.status(403).json({ error: 'only the original sender can edit this message' });
-      }
-
-      arr[idx] = Object.assign({}, arr[idx], {
-        text,
-        edited: true,
-        editedTs: now
-      });
-
-      await redis(['SET', key, JSON.stringify(arr)]);
-      return res.status(200).json(arr[idx]);
     }
 
     return res.status(405).json({ error: 'method not allowed' });
