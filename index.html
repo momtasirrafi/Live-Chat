@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, interactive-widget=resizes-content">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Vanish — chat that burns away</title>
 
 <!-- PWA: installable as a home-screen app -->
@@ -19,171 +19,148 @@
 <link href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
 <style>
   :root{
-    --ink:#0d0a12;
-    --panel:#171220;
-    --panel-2:#1e1829;
-    --ember:#ff6a4d;
-    --ember-2:#ffb238;
-    --ember-dim:#c14e39;
-    --ash:#9c90ad;
-    --paper:#f4ede8;
-    --line:#312a3f;
-    --good:#3ddc84;
-    --danger:#ff5f70;
-    --gradient:linear-gradient(135deg, var(--ember) 0%, var(--ember-2) 100%);
+    --ink:#10131a;
+    --panel:#171b25;
+    --panel-2:#1e2330;
+    --ember:#ff7a45;
+    --ember-dim:#c75a2e;
+    --ash:#8b93a6;
+    --paper:#eef0f4;
+    --line:#2a2f3d;
+    --good:#5ecb96;
   }
   *{box-sizing:border-box;}
   html,body{height:100%;}
   body{
     margin:0;
     background:
-      radial-gradient(circle at 12% -8%, rgba(255,106,77,0.14) 0%, transparent 42%),
-      radial-gradient(circle at 92% 108%, rgba(255,178,56,0.10) 0%, transparent 40%),
+      radial-gradient(circle at 15% 0%, #1a1f2c 0%, transparent 45%),
+      radial-gradient(circle at 85% 100%, #1a1712 0%, transparent 40%),
       var(--ink);
     color:var(--paper);
     font-family:'Inter',sans-serif;
     min-height:100vh;
-    /* dvh tracks the *visible* viewport, so the composer isn't pushed under
-       the on-screen keyboard or the collapsing mobile browser bar. Declared
-       after the vh line so old engines keep the fallback. */
-    min-height:100dvh;
     display:flex;
     align-items:center;
     justify-content:center;
     padding:20px;
-    /* Stop the whole page rubber-banding / pull-to-refresh on touch — a chat
-       that bounces away under your thumb reads as a website, not an app. */
-    overscroll-behavior:none;
-    -webkit-tap-highlight-color:transparent;
   }
   .landing{
     width:100%;
-    max-width:340px;
+    max-width:420px;
     background:var(--panel);
     border:1px solid var(--line);
-    border-radius:22px;
-    padding:40px 30px 32px;
+    border-radius:14px;
+    padding:36px 32px;
     position:relative;
     overflow:hidden;
-    box-shadow:0 30px 60px -20px rgba(0,0,0,0.6);
   }
   .landing::before{
     content:"";
     position:absolute;
-    top:-45%; right:-30%;
-    width:280px; height:280px;
-    background:radial-gradient(circle, rgba(255,106,77,0.20), transparent 70%);
+    top:-40%; right:-30%;
+    width:260px; height:260px;
+    background:radial-gradient(circle, rgba(255,122,69,0.16), transparent 70%);
     pointer-events:none;
   }
-  .brand-row{display:flex;align-items:center;justify-content:center;gap:11px;margin-bottom:30px;}
+  .brand-row{display:flex;align-items:center;gap:8px;margin-bottom:20px;}
   .brand-mark{
-    width:38px;height:38px;border-radius:12px;background:var(--gradient);
+    width:26px;height:26px;border-radius:8px;background:var(--ember);
     display:flex;align-items:center;justify-content:center;flex-shrink:0;
-    box-shadow:0 6px 18px -4px rgba(255,106,77,0.55);
   }
-  .brand-mark svg{width:20px;height:20px;}
   .brand{
     font-family:'Space Mono',monospace;
-    font-size:16px;
-    letter-spacing:0.32em;
+    font-size:12px;
+    letter-spacing:0.28em;
     text-transform:uppercase;
-    background:var(--gradient);
-    -webkit-background-clip:text;
-    background-clip:text;
-    color:transparent;
+    color:var(--ember);
   }
+  h1{
+    font-family:'Space Mono',monospace;
+    font-size:26px;
+    font-weight:700;
+    margin:0 0 12px 0;
+    line-height:1.3;
+  }
+  .sub{color:var(--ash);font-size:14px;line-height:1.65;margin-bottom:8px;}
   label{
-    display:block;font-size:10.5px;letter-spacing:0.14em;text-transform:uppercase;
-    color:var(--ash);margin-bottom:8px;margin-top:20px;font-weight:600;
+    display:block;font-size:11px;letter-spacing:0.1em;text-transform:uppercase;
+    color:var(--ash);margin-bottom:7px;margin-top:22px;
   }
-  label:first-of-type{margin-top:0;}
   input[type=text]{
-    width:100%;background:var(--panel-2);border:1px solid var(--line);border-radius:12px;
-    padding:13px 15px;color:var(--paper);font-family:'Inter',sans-serif;font-size:16px;
-    outline:none;transition:border-color .15s ease, box-shadow .15s ease;
+    width:100%;background:var(--panel-2);border:1px solid var(--line);border-radius:8px;
+    padding:12px 14px;color:var(--paper);font-family:'Inter',sans-serif;font-size:15px;
+    outline:none;transition:border-color .15s ease;
   }
-  input[type=text]:focus{border-color:var(--ember);box-shadow:0 0 0 3px rgba(255,106,77,0.16);}
-  .hint{font-size:12px;color:var(--ash);margin-top:7px;line-height:1.5;}
+  input[type=text]:focus{border-color:var(--ember);}
+  .hint{font-size:12px;color:var(--ash);margin-top:6px;}
   .btn{
-    margin-top:28px;width:100%;background:var(--gradient);border:none;border-radius:12px;
-    color:#20100a;font-weight:700;font-size:15px;padding:14px;cursor:pointer;
-    transition:filter .15s ease, transform .1s ease;
-    box-shadow:0 10px 24px -8px rgba(255,106,77,0.5);
+    margin-top:26px;width:100%;background:var(--ember);border:none;border-radius:8px;
+    color:#1a0f08;font-weight:600;font-size:15px;padding:13px;cursor:pointer;
+    transition:background .15s ease, transform .1s ease;
   }
-  .btn:hover{filter:brightness(1.08);}
+  .btn:hover{background:#ff8c5e;}
   .btn:active{transform:scale(0.98);}
-  .err{color:var(--danger);font-size:13px;margin-top:10px;min-height:16px;}
+  .err{color:#ff8080;font-size:13px;margin-top:10px;min-height:16px;}
 
   .chatwrap{
     width:100%;max-width:560px;height:88vh;max-height:760px;background:var(--panel);
-    border:1px solid var(--line);border-radius:20px;display:none;flex-direction:column;overflow:hidden;
-    position:relative;box-shadow:0 30px 70px -25px rgba(0,0,0,0.65);
+    border:1px solid var(--line);border-radius:14px;display:none;flex-direction:column;overflow:hidden;
+    position:relative;
   }
   .chatwrap.active{display:flex;}
   .landing.hidden{display:none;}
 
   header.chatbar{
-    padding:13px 18px;border-bottom:1px solid var(--line);display:flex;
+    padding:14px 18px;border-bottom:1px solid var(--line);display:flex;
     align-items:center;justify-content:space-between;background:var(--panel-2);gap:12px;
   }
-  .chatbar-left{display:flex;align-items:center;gap:11px;min-width:0;}
-  .peer-avatar{
-    width:38px;height:38px;border-radius:50%;flex-shrink:0;
-    background:var(--gradient);color:#20100a;
-    display:flex;align-items:center;justify-content:center;
-    font-family:'Space Mono',monospace;font-weight:700;font-size:15px;
-    box-shadow:0 0 0 2px var(--panel-2), 0 0 0 3.5px rgba(255,106,77,0.4);
-  }
-  .chatbar-text{min-width:0;display:flex;flex-direction:column;gap:1px;}
+  .chatbar-left{display:flex;align-items:center;gap:9px;min-width:0;}
   .room-tag{
-    font-family:'Space Mono',monospace;font-size:13.5px;color:var(--paper);letter-spacing:0.01em;
-    overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-weight:600;
-  }
-  .room-sub{
-    font-size:11px;color:var(--ash);display:flex;align-items:center;gap:5px;
+    font-family:'Space Mono',monospace;font-size:13px;color:var(--paper);letter-spacing:0.02em;
     overflow:hidden;text-overflow:ellipsis;white-space:nowrap;
   }
+  .room-tag b{color:var(--ember);font-weight:400;}
   .status-dot{
-    width:7px;height:7px;border-radius:50%;background:var(--good);box-shadow:0 0 6px var(--good);
+    width:8px;height:8px;border-radius:50%;background:var(--good);box-shadow:0 0 6px var(--good);
     flex-shrink:0;cursor:default;
   }
-  .status-dot.offline{background:var(--ash);box-shadow:none;}
-  .toolbar{display:flex;align-items:center;gap:2px;flex-shrink:0;}
+  .toolbar{display:flex;align-items:center;gap:4px;flex-shrink:0;}
   .icon-btn{
-    background:none;border:none;color:var(--ash);width:38px;height:38px;border-radius:12px;
+    background:none;border:none;color:var(--ash);width:38px;height:38px;border-radius:10px;
     cursor:pointer;display:flex;align-items:center;justify-content:center;transition:all .15s ease;
   }
   .icon-btn:hover{background:rgba(255,255,255,0.06);color:var(--paper);}
-  .icon-btn.on{color:var(--ember);background:rgba(255,106,77,0.14);}
+  .icon-btn.on{color:var(--ember);background:rgba(255,122,69,0.12);}
   .icon-btn svg{width:18px;height:18px;}
   .toolbar-divider{width:1px;height:22px;background:var(--line);margin:0 4px;}
 
   /* ---------- Call overlay ---------- */
   .call-overlay{
-    position:absolute;inset:0;background:rgba(9,7,13,0.97);
+    position:absolute;inset:0;background:rgba(10,12,17,0.97);
     display:none;flex-direction:column;align-items:center;justify-content:center;
     gap:18px;z-index:20;padding:24px;text-align:center;
   }
   .call-overlay.show{display:flex;}
   .call-avatar{
-    width:88px;height:88px;border-radius:50%;background:var(--gradient);
+    width:88px;height:88px;border-radius:50%;background:var(--panel-2);border:2px solid var(--ember-dim);
     display:flex;align-items:center;justify-content:center;font-family:'Space Mono',monospace;
-    font-size:30px;color:#20100a;
+    font-size:30px;color:var(--ember);
   }
   .call-avatar.pulse{animation:pulse 1.4s ease-in-out infinite;}
   @keyframes pulse{
-    0%,100%{box-shadow:0 0 0 0 rgba(255,106,77,0.35);}
-    50%{box-shadow:0 0 0 16px rgba(255,106,77,0);}
+    0%,100%{box-shadow:0 0 0 0 rgba(255,122,69,0.35);}
+    50%{box-shadow:0 0 0 16px rgba(255,122,69,0);}
   }
   .call-name{font-family:'Space Mono',monospace;font-size:18px;}
   .call-status{font-size:13px;color:var(--ash);}
   .call-timer{font-family:'Space Mono',monospace;font-size:13px;color:var(--good);}
   .call-video-wrap{position:relative;width:100%;height:100%;display:none;}
   .call-video-wrap.show{display:block;}
-  video.remote-video{width:100%;height:100%;object-fit:cover;border-radius:16px;background:#000;}
+  video.remote-video{width:100%;height:100%;object-fit:cover;border-radius:12px;background:#000;}
   video.local-video{
     position:absolute;bottom:18px;right:18px;width:110px;height:82px;object-fit:cover;
-    border-radius:10px;border:1px solid var(--line);background:#000;
+    border-radius:8px;border:1px solid var(--line);background:#000;
   }
   .call-controls{display:flex;gap:16px;align-items:center;z-index:1;}
   .call-btn{
@@ -192,10 +169,10 @@
   }
   .call-btn:active{transform:scale(0.92);}
   .call-btn.mute-tgl, .call-btn.cam-tgl{background:var(--panel-2);border:1px solid var(--line);color:var(--paper);}
-  .call-btn.mute-tgl.off, .call-btn.cam-tgl.off{background:var(--gradient);color:#20100a;border-color:transparent;}
-  .call-btn.hangup{background:var(--danger);color:#fff;}
+  .call-btn.mute-tgl.off, .call-btn.cam-tgl.off{background:var(--ember);color:#1a0f08;border-color:var(--ember);}
+  .call-btn.hangup{background:#e5484d;color:#fff;}
   .call-btn.accept{background:var(--good);color:#0c1a12;}
-  .call-btn.decline{background:var(--danger);color:#fff;}
+  .call-btn.decline{background:#e5484d;color:#fff;}
   .call-controls-row{display:flex;gap:20px;position:absolute;bottom:24px;left:50%;transform:translateX(-50%);z-index:1;}
 
   .incoming-actions{display:flex;gap:22px;}
@@ -205,33 +182,24 @@
 
   .toast{
     position:absolute;top:64px;left:50%;transform:translateX(-50%) translateY(-8px);
-    background:var(--panel-2);border:1px solid var(--ember-dim);border-radius:12px;padding:10px 16px;
+    background:var(--panel-2);border:1px solid var(--ember-dim);border-radius:10px;padding:9px 16px;
     font-size:13px;color:var(--paper);opacity:0;pointer-events:none;transition:all .25s ease;z-index:5;
-    max-width:80%;text-align:center;box-shadow:0 12px 30px -10px rgba(0,0,0,0.5);
+    max-width:80%;text-align:center;
   }
   .toast.show{opacity:1;transform:translateX(-50%) translateY(0);}
 
-  .messages{
-    flex:1;overflow-y:auto;padding:18px 16px;display:flex;flex-direction:column;gap:11px;
-    /* Keep momentum scrolling inside the list and stop a scroll that hits the
-       end from chaining out to the page behind it. */
-    -webkit-overflow-scrolling:touch;
-    overscroll-behavior-y:contain;
-    background:
-      radial-gradient(circle at 20% 8%, rgba(255,106,77,0.045) 0%, transparent 34%),
-      radial-gradient(circle at 82% 82%, rgba(255,178,56,0.04) 0%, transparent 34%);
-  }
+  .messages{flex:1;overflow-y:auto;padding:20px;display:flex;flex-direction:column;gap:16px;}
   .messages::-webkit-scrollbar{width:6px;}
   .messages::-webkit-scrollbar-thumb{background:var(--line);border-radius:3px;}
 
   .empty{margin:auto;text-align:center;color:var(--ash);font-size:13px;line-height:1.7;}
   .empty .big{font-family:'Space Mono',monospace;font-size:15px;color:var(--paper);display:block;margin-bottom:4px;}
 
-  .msg{max-width:78%;display:flex;flex-direction:column;gap:5px;position:relative;}
+  .msg{max-width:78%;display:flex;flex-direction:column;gap:6px;position:relative;}
   .msg.mine{align-self:flex-end;align-items:flex-end;}
   .msg.theirs{align-self:flex-start;align-items:flex-start;}
-  .msg-status{font-size:10px;color:var(--ash);font-family:'Space Mono',monospace;margin-top:2px;margin-right:2px;}
-  .meta{font-size:10.5px;color:var(--ash);font-family:'Space Mono',monospace;display:flex;align-items:center;gap:7px;}
+  .meta{font-size:11px;color:var(--ash);font-family:'Space Mono',monospace;display:flex;align-items:center;gap:8px;}
+  .edited-tag{font-style:italic;opacity:0.75;}
   .reply-btn{
     background:none;border:none;color:var(--ash);font-size:11px;cursor:pointer;padding:0;
     opacity:0;transition:opacity .15s ease;font-family:'Inter',sans-serif;
@@ -239,23 +207,20 @@
   .msg:hover .reply-btn{opacity:1;}
   .reply-btn:hover{color:var(--ember);}
   .quote{
-    font-size:12px;color:var(--ash);border-left:2px solid var(--ember);padding:4px 10px;
-    margin-bottom:2px;border-radius:6px;background:rgba(255,106,77,0.08);max-width:100%;
+    font-size:12px;color:var(--ash);border-left:2px solid var(--ember-dim);padding:4px 10px;
+    margin-bottom:6px;border-radius:4px;background:rgba(255,122,69,0.06);max-width:100%;
   }
   .quote b{color:var(--paper);}
-  .bubble{
-    padding:9px 13px;border-radius:16px;font-size:14.5px;line-height:1.48;
-    word-wrap:break-word;white-space:pre-wrap;
-  }
-  .msg.mine .bubble{background:var(--gradient);color:#20100a;border-bottom-right-radius:5px;font-weight:500;}
-  .msg.theirs .bubble{background:var(--panel-2);border:1px solid var(--line);border-bottom-left-radius:5px;}
+  .bubble{padding:10px 14px;border-radius:12px;font-size:14.5px;line-height:1.5;word-wrap:break-word;white-space:pre-wrap;}
+  .msg.mine .bubble{background:var(--ember);color:#1a0f08;border-bottom-right-radius:3px;}
+  .msg.theirs .bubble{background:var(--panel-2);border:1px solid var(--line);border-bottom-left-radius:3px;}
 
   .fuse{width:100%;height:2px;background:var(--line);border-radius:2px;overflow:hidden;}
-  .fuse-fill{height:100%;background:var(--gradient);width:0%;}
+  .fuse-fill{height:100%;background:linear-gradient(90deg, var(--ember-dim), var(--ember));width:0%;}
 
   .reply-preview{
     display:none;align-items:center;justify-content:space-between;gap:10px;
-    padding:9px 16px;background:var(--panel-2);border-top:1px solid var(--line);
+    padding:8px 16px;background:var(--panel-2);border-top:1px solid var(--line);
   }
   .reply-preview.show{display:flex;}
   .reply-preview .info{font-size:12px;color:var(--ash);border-left:2px solid var(--ember);padding-left:8px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
@@ -263,153 +228,21 @@
   .reply-preview button{background:none;border:none;color:var(--ash);cursor:pointer;font-size:16px;line-height:1;flex-shrink:0;}
   .reply-preview button:hover{color:var(--paper);}
 
-  form.composer{display:flex;gap:7px;align-items:center;padding:12px 14px;border-top:1px solid var(--line);background:var(--panel-2);position:relative;}
-  .composer input[type=file]{display:none;}
-  .composer-icon-btn{
-    background:none;border:none;color:var(--ash);width:38px;height:38px;border-radius:50%;
-    cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0;
-    transition:all .15s ease;
+  form.composer{display:flex;gap:10px;padding:16px;border-top:1px solid var(--line);background:var(--panel-2);}
+  .composer input{
+    flex:1;background:var(--ink);border:1px solid var(--line);border-radius:24px;
+    padding:12px 18px;color:var(--paper);font-size:14.5px;outline:none;
   }
-  .composer-icon-btn:hover{background:rgba(255,255,255,0.06);color:var(--paper);}
-  .composer-icon-btn svg{width:20px;height:20px;}
-  .input-wrap{
-    flex:1;min-width:0;background:var(--ink);border:1px solid var(--line);border-radius:22px;
-    display:flex;align-items:center;padding-right:6px;transition:border-color .15s ease;
-  }
-  .input-wrap:focus-within{border-color:var(--ember);}
-  .input-wrap .composer-icon-btn{width:32px;height:32px;}
-  .composer input[type=text]{
-    flex:1;min-width:0;background:none;border:none;padding:11px 17px;color:var(--paper);
-    /* Must stay >=16px: iOS auto-zooms the entire page when you focus an
-       input with a smaller font, which leaves the chat scrolled sideways. */
-    font-size:16px;outline:none;
-  }
+  .composer input:focus{border-color:var(--ember);}
   .send{
-    background:var(--gradient);border:none;color:#20100a;width:42px;height:42px;border-radius:50%;
+    background:var(--ember);border:none;color:#1a0f08;width:44px;height:44px;border-radius:50%;
     font-size:17px;cursor:pointer;flex-shrink:0;display:flex;align-items:center;justify-content:center;
-    transition:filter .15s ease, transform .1s ease;box-shadow:0 6px 16px -6px rgba(255,106,77,0.6);
+    transition:background .15s ease, transform .1s ease;
   }
-  .send:hover{filter:brightness(1.08);}
+  .send:hover{background:#ff8c5e;}
   .send:active{transform:scale(0.94);}
 
-  .emoji-panel{
-    position:absolute;bottom:64px;right:55px;background:var(--panel-2);border:1px solid var(--line);
-    border-radius:14px;padding:10px;display:none;grid-template-columns:repeat(6,1fr);gap:2px;
-    width:252px;z-index:15;box-shadow:0 14px 32px rgba(0,0,0,0.45);
-  }
-  .emoji-panel.show{display:grid;}
-  .emoji-panel button{
-    background:none;border:none;font-size:20px;padding:6px;border-radius:9px;cursor:pointer;
-    line-height:1;
-  }
-  .emoji-panel button:hover{background:rgba(255,255,255,0.08);}
-
-  .bubble.has-image{padding:5px;}
-  .msg-image{
-    max-width:230px;max-height:300px;width:100%;border-radius:12px;display:block;
-    cursor:pointer;object-fit:cover;
-  }
-  .caption{padding:7px 6px 3px;font-size:14.5px;line-height:1.4;white-space:pre-wrap;word-wrap:break-word;}
-  .img-sending{opacity:0.55;}
-
-  .composer-icon-btn.mic-btn.active{background:var(--danger);color:#fff;}
-  .composer-icon-btn.rec-cancel-btn{display:none;color:var(--danger);}
-  .composer.recording .rec-cancel-btn{display:flex;}
-  .composer.recording #attachBtn, .composer.recording #emojiBtn, .composer.recording .send{display:none;}
-  .composer.recording .input-wrap{display:none;}
-  .recording-indicator{
-    display:none;align-items:center;gap:9px;flex:1;min-width:0;padding:0 6px;
-  }
-  .composer.recording .recording-indicator{display:flex;}
-  .rec-dot{width:9px;height:9px;border-radius:50%;background:var(--danger);flex-shrink:0;animation:recBlink 1s ease-in-out infinite;}
-  @keyframes recBlink{0%,100%{opacity:1;}50%{opacity:0.25;}}
-  .rec-timer{font-family:'Space Mono',monospace;font-size:13.5px;color:var(--paper);flex-shrink:0;}
-  .rec-label{color:var(--ash);font-size:12.5px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
-
-  /* ---------- message action menu (delete for me / everyone) ---------- */
-  .menu-btn{
-    background:none;border:none;color:var(--ash);font-size:15px;cursor:pointer;padding:0 2px;
-    line-height:1;flex-shrink:0;
-  }
-  .menu-btn:hover{color:var(--paper);}
-  .msg-menu{
-    display:none;position:absolute;top:22px;z-index:8;background:var(--panel-2);border:1px solid var(--line);
-    border-radius:12px;overflow:hidden;min-width:168px;box-shadow:0 14px 30px rgba(0,0,0,0.45);
-  }
-  .msg.mine .msg-menu{right:0;}
-  .msg.theirs .msg-menu{left:0;}
-  .msg-menu.show{display:block;}
-  .msg-menu-item{
-    display:block;width:100%;text-align:left;background:none;border:none;color:var(--paper);
-    padding:11px 14px;font-size:13px;cursor:pointer;font-family:'Inter',sans-serif;
-  }
-  .msg-menu-item:hover{background:rgba(255,255,255,0.07);}
-  .msg-menu-item.danger{color:var(--danger);}
-
-  /* ---------- voice message bubble ---------- */
-  .bubble.has-audio{display:flex;align-items:center;gap:10px;padding:8px 10px;min-width:210px;}
-  .voice-player audio{display:none;}
-  .voice-play-btn{
-    width:34px;height:34px;border-radius:50%;border:none;flex-shrink:0;cursor:pointer;
-    display:flex;align-items:center;justify-content:center;
-  }
-  .msg.mine .voice-play-btn{background:#20100a;color:var(--ember-2);}
-  .msg.theirs .voice-play-btn{background:var(--gradient);color:#20100a;}
-  .voice-play-btn:disabled{opacity:0.5;cursor:default;}
-  .voice-mid{flex:1;min-width:0;display:flex;flex-direction:column;gap:6px;}
-  .voice-track{height:4px;border-radius:2px;background:rgba(0,0,0,0.18);cursor:pointer;position:relative;overflow:hidden;}
-  .msg.theirs .voice-track{background:rgba(255,255,255,0.14);}
-  .voice-track-fill{height:100%;width:0%;}
-  .msg.mine .voice-track-fill{background:#20100a;}
-  .msg.theirs .voice-track-fill{background:var(--gradient);}
-  .voice-time{font-family:'Space Mono',monospace;font-size:11px;}
-  .msg.mine .voice-time{color:#3d2013;}
-  .msg.theirs .voice-time{color:var(--ash);}
-
-  .lightbox{
-    position:fixed;inset:0;background:rgba(6,5,9,0.94);display:none;
-    align-items:center;justify-content:center;z-index:60;padding:28px;
-  }
-  .lightbox.show{display:flex;}
-  .lightbox img{max-width:100%;max-height:100%;border-radius:12px;}
-  .lightbox-close{
-    position:absolute;top:20px;right:20px;background:var(--panel-2);border:1px solid var(--line);
-    color:var(--paper);width:40px;height:40px;border-radius:50%;display:flex;align-items:center;
-    justify-content:center;cursor:pointer;
-  }
-
   @media (prefers-reduced-motion: reduce){ .fuse-fill{transition:none !important;} }
-
-  /* ---- Phone layout ----------------------------------------------------
-     On a phone the chat should own the whole screen like an app, instead of
-     floating as an 88vh card inside a 20px-padded page. The :has() rule only
-     drops the page padding once the chat is open, so the landing card stays
-     centred with its breathing room. env(safe-area-inset-*) keeps the header
-     clear of the notch and the composer clear of the home indicator — those
-     read as zero on devices without insets, so this is safe everywhere. */
-  @media (max-width:600px){
-    body:has(.chatwrap.active){padding:0;align-items:stretch;}
-    .chatwrap{
-      max-width:none;height:100dvh;max-height:none;
-      border:none;border-radius:0;box-shadow:none;
-    }
-    header.chatbar{
-      padding-top:calc(13px + env(safe-area-inset-top));
-      padding-left:calc(18px + env(safe-area-inset-left));
-      padding-right:calc(18px + env(safe-area-inset-right));
-    }
-    form.composer{
-      padding-bottom:calc(12px + env(safe-area-inset-bottom));
-      padding-left:calc(14px + env(safe-area-inset-left));
-      padding-right:calc(14px + env(safe-area-inset-right));
-    }
-    .call-overlay{padding-top:env(safe-area-inset-top);padding-bottom:env(safe-area-inset-bottom);}
-    /* 38px taps are under the 44px minimum both platforms ask for. */
-    .composer-icon-btn{width:44px;height:44px;}
-    .input-wrap .composer-icon-btn{width:38px;height:38px;}
-    .send{width:46px;height:46px;}
-    .emoji-panel{right:12px;left:12px;width:auto;grid-template-columns:repeat(8,1fr);}
-  }
 </style>
 </head>
 <body>
@@ -417,16 +250,19 @@
   <div class="landing" id="landing">
     <div class="brand-row">
       <div class="brand-mark">
-        <svg viewBox="0 0 24 24" width="20" height="20" fill="var(--ink)"><path d="M12 2c2 3 4.5 5 4.5 8.5a4.5 4.5 0 0 1-9 0c0-1.3.5-2.3 1.2-3.3.2 1 .9 1.6 1.6 1.6.9 0 1-1 .7-1.8-.5-1.3-.4-2.9 1-5z"/></svg>
+        <svg viewBox="0 0 24 24" width="16" height="16" fill="var(--ink)"><path d="M12 2c2 3 4.5 5 4.5 8.5a4.5 4.5 0 0 1-9 0c0-1.3.5-2.3 1.2-3.3.2 1 .9 1.6 1.6 1.6.9 0 1-1 .7-1.8-.5-1.3-.4-2.9 1-5z"/></svg>
       </div>
       <div class="brand">Vanish</div>
     </div>
+    <h1>Chat that disappears<br>after an hour.</h1>
+    <div class="sub">Share a room code with your friend — anything you type is gone for good 60 minutes after it's sent.</div>
 
     <label for="nameInput">Your name</label>
     <input type="text" id="nameInput" placeholder="e.g. Sam" maxlength="24">
 
     <label for="roomInput">Room code</label>
     <input type="text" id="roomInput" placeholder="a word only you two know" maxlength="40">
+    <div class="hint">Both of you enter the same code to land in the same room.</div>
 
     <button class="btn" id="enterBtn">Enter room</button>
     <div class="err" id="errMsg"></div>
@@ -435,11 +271,8 @@
   <div class="chatwrap" id="chatwrap">
     <header class="chatbar">
       <div class="chatbar-left">
-        <div class="peer-avatar" id="peerAvatar">V</div>
-        <div class="chatbar-text">
-          <div class="room-tag" id="roomLabel"></div>
-          <div class="room-sub"><span class="status-dot" id="statusDot" title="Messages vanish 1 hour after they're sent"></span><span id="statusText">Vanishes after 1 hour</span></div>
-        </div>
+        <span class="status-dot" title="Messages vanish 1 hour after they're sent"></span>
+        <div class="room-tag" id="roomTag" title=""><span id="roomLabel"></span></div>
       </div>
       <div class="toolbar">
         <button class="icon-btn" id="voiceCallBtn" type="button" title="Voice call" aria-label="Voice call">
@@ -493,41 +326,14 @@
       <div class="info">Replying to <b id="replyPreviewName"></b>: <span id="replyPreviewText"></span></div>
       <button type="button" id="cancelReply" title="Cancel reply"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" width="18" height="18"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button>
     </div>
+    <div class="reply-preview" id="editPreview">
+      <div class="info">Editing your message</div>
+      <button type="button" id="cancelEdit" title="Cancel edit"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" width="18" height="18"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button>
+    </div>
     <form class="composer" id="composer">
-      <button type="button" class="composer-icon-btn" id="attachBtn" title="Send a photo" aria-label="Send a photo">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15V6a2 2 0 0 0-2-2H5a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2z"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="M21 15l-5-5L5 21"/></svg>
-      </button>
-      <input type="file" id="fileInput" accept="image/*">
-      <div class="emoji-panel" id="emojiPanel"></div>
-
-      <div class="recording-indicator" id="recordingIndicator">
-        <span class="rec-dot"></span>
-        <span class="rec-timer" id="recTimer">0:00</span>
-        <span class="rec-label">Recording voice message…</span>
-      </div>
-
-      <button type="button" class="composer-icon-btn rec-cancel-btn" id="recCancelBtn" title="Cancel recording" aria-label="Cancel recording">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/></svg>
-      </button>
-
-      <div class="input-wrap">
-        <input type="text" id="msgInput" placeholder="Type a message…" maxlength="1000" autocomplete="off">
-        <button type="button" class="composer-icon-btn" id="emojiBtn" title="Emoji" aria-label="Emoji">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M8 14s1.5 2 4 2 4-2 4-2"/><line x1="9" y1="9" x2="9.01" y2="9"/><line x1="15" y1="9" x2="15.01" y2="9"/></svg>
-        </button>
-      </div>
-
-      <button type="button" class="composer-icon-btn mic-btn" id="micBtn" title="Record voice message" aria-label="Record voice message">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" y1="19" x2="12" y2="23"/><line x1="8" y1="23" x2="16" y2="23"/></svg>
-      </button>
-
-      <button type="submit" class="send"><svg viewBox="0 0 24 24" fill="currentColor" width="17" height="17"><path d="M2 21l21-9L2 3v7l15 2-15 2z"/></svg></button>
+      <input type="text" id="msgInput" placeholder="Type a message…" maxlength="1000" autocomplete="off">
+      <button type="submit" class="send" id="sendBtn"><svg viewBox="0 0 24 24" fill="currentColor" width="17" height="17"><path d="M2 21l21-9L2 3v7l15 2-15 2z"/></svg></button>
     </form>
-  </div>
-
-  <div class="lightbox" id="lightbox">
-    <button type="button" class="lightbox-close" id="lightboxClose" aria-label="Close"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" width="18" height="18"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button>
-    <img id="lightboxImg" src="" alt="">
   </div>
 
 <script>
@@ -541,42 +347,22 @@
   const ICON_CAM = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" width="20" height="20"><path d="M23 7l-7 5 7 5V7z"/><rect x="1" y="5" width="15" height="14" rx="2.5"/></svg>';
   const ICON_CAM_OFF = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" width="20" height="20"><path d="M16 16v1a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V7a2 2 0 0 1 2-2h2"/><path d="M23 7l-7 5 7 5V7z"/><line x1="1" y1="1" x2="23" y2="23"/></svg>';
   const ICON_PHONE = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" width="26" height="26"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72c.13.96.36 1.9.7 2.81a2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45c.9.34 1.85.57 2.81.7A2 2 0 0 1 22 16.92z"/></svg>';
+  const ICON_CHECK = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" width="17" height="17"><polyline points="20 6 9 17 4 12"/></svg>';
+  const ICON_SEND = '<svg viewBox="0 0 24 24" fill="currentColor" width="17" height="17"><path d="M2 21l21-9L2 3v7l15 2-15 2z"/></svg>';
   const ICON_VIDEO = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" width="26" height="26"><path d="M23 7l-7 5 7 5V7z"/><rect x="1" y="5" width="15" height="14" rx="2.5"/></svg>';
-  const ICON_MIC_ON = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" y1="19" x2="12" y2="23"/><line x1="8" y1="23" x2="16" y2="23"/></svg>';
-  const ICON_MIC_SEND = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>';
-  const ICON_VOICE_PLAY = '<svg viewBox="0 0 24 24" fill="currentColor" width="14" height="14"><path d="M4 2l16 10L4 22V2z"/></svg>';
-  const ICON_VOICE_PAUSE = '<svg viewBox="0 0 24 24" fill="currentColor" width="14" height="14"><rect x="5" y="3" width="5" height="18" rx="1"/><rect x="14" y="3" width="5" height="18" rx="1"/></svg>';
   const LIFETIME_MS = 60 * 60 * 1000;
   let room = null;
   let myName = null;
   let pollTimer = null;
-  let presenceTimer = null;
-  let renderedIds = new Set();
   let notifyEnabled = false;
   let replyingTo = null; // { id, sender, text }
-  let hiddenLocalIds = new Set(); // "delete for me" — hidden on this device only
+  let editingTarget = null; // { id }
+  let otherParticipant = null; // name of the other person, learned from their first message
   let toastTimer = null;
   let audioCtx = null;
 
   // ---- calling state ----
-  // STUN alone (the first two entries) only works when NAT traversal is
-  // straightforward. The moment either person is on a mobile network,
-  // corporate Wi-Fi, or a router doing symmetric NAT/CGNAT, STUN can't find
-  // a path — offer/answer/candidates still exchange fine (so it rings),
-  // but no audio/video ever connects. The TURN entries below relay the
-  // call through a server instead, which is what makes cross-network calls
-  // actually work. These are free/public (Open Relay Project) — fine for
-  // getting this working now, but they're shared and rate-limited. For
-  // reliable long-term use, get your own free TURN credentials at
-  // https://www.metered.ca/tools/openrelay/ (or run coturn yourself) and
-  // swap them in here.
-  const ICE_SERVERS = [
-    { urls: 'stun:stun.l.google.com:19302' },
-    { urls: 'stun:stun1.l.google.com:19302' },
-    { urls: 'turn:openrelay.metered.ca:80', username: 'openrelayproject', credential: 'openrelayproject' },
-    { urls: 'turn:openrelay.metered.ca:443', username: 'openrelayproject', credential: 'openrelayproject' },
-    { urls: 'turn:openrelay.metered.ca:443?transport=tcp', username: 'openrelayproject', credential: 'openrelayproject' }
-  ];
+  const ICE_SERVERS = [{ urls: 'stun:stun.l.google.com:19302' }, { urls: 'stun:stun1.l.google.com:19302' }];
   let pc = null;
   let localStream = null;
   let currentCallId = null;
@@ -597,27 +383,20 @@
   const nameInput = document.getElementById('nameInput');
   const roomInput = document.getElementById('roomInput');
   const roomLabel = document.getElementById('roomLabel');
-  const peerAvatar = document.getElementById('peerAvatar');
+  const roomTag = document.getElementById('roomTag');
   const messagesEl = document.getElementById('messages');
   const emptyState = document.getElementById('emptyState');
   const composer = document.getElementById('composer');
   const msgInput = document.getElementById('msgInput');
+  const sendBtn = document.getElementById('sendBtn');
   const bellBtn = document.getElementById('bellBtn');
   const toast = document.getElementById('toast');
   const replyPreview = document.getElementById('replyPreview');
   const replyPreviewName = document.getElementById('replyPreviewName');
   const replyPreviewText = document.getElementById('replyPreviewText');
   const cancelReply = document.getElementById('cancelReply');
-  const attachBtn = document.getElementById('attachBtn');
-  const fileInput = document.getElementById('fileInput');
-  const emojiBtn = document.getElementById('emojiBtn');
-  const emojiPanel = document.getElementById('emojiPanel');
-  const lightbox = document.getElementById('lightbox');
-  const lightboxImg = document.getElementById('lightboxImg');
-  const lightboxClose = document.getElementById('lightboxClose');
-  const micBtn = document.getElementById('micBtn');
-  const recCancelBtn = document.getElementById('recCancelBtn');
-  const recTimerEl = document.getElementById('recTimer');
+  const editPreview = document.getElementById('editPreview');
+  const cancelEdit = document.getElementById('cancelEdit');
   const baseTitle = document.title;
 
   const voiceCallBtn = document.getElementById('voiceCallBtn');
@@ -654,195 +433,19 @@
     }catch(e){ return []; }
   }
 
-  async function postMessage(text, replyTo, image, audio, audioDuration){
-    const controller = new AbortController();
-    // A stalled connection can otherwise leave fetch() pending forever,
-    // which is what makes a bubble get stuck on "Sending…" with no way
-    // out. Capping it means a slow/dead connection becomes a visible,
-    // recoverable error instead of an infinite spinner.
-    const timeoutId = setTimeout(() => controller.abort(), 20000);
+  async function postMessage(text, replyTo){
     try{
       const res = await fetch('/api/messages', {
         method:'POST',
         headers:{'Content-Type':'application/json'},
-        body: JSON.stringify({room, sender: myName, text, replyTo: replyTo || null, image: image || null, audio: audio || null, audioDuration: audioDuration || null}),
-        signal: controller.signal
+        body: JSON.stringify({room, sender: myName, text, replyTo: replyTo || null})
       });
-      if(!res.ok){
-        const err = await res.json().catch(() => ({}));
-        return { error: err.error || 'Failed to send' };
-      }
-      return await res.json();
-    }catch(e){
-      if(e.name === 'AbortError') return { error: 'Timed out — check your connection and try again' };
-      return { error: 'Failed to send' };
-    }finally{
-      clearTimeout(timeoutId);
-    }
+      return res.ok ? await res.json() : null;
+    }catch(e){ return null; }
   }
-
-  function loadHiddenLocalIds(){
-    try{
-      const raw = localStorage.getItem('vanish:hidden:' + room);
-      hiddenLocalIds = new Set(raw ? JSON.parse(raw) : []);
-    }catch(e){ hiddenLocalIds = new Set(); }
-  }
-
-  function saveHiddenLocalIds(){
-    try{
-      localStorage.setItem('vanish:hidden:' + room, JSON.stringify(Array.from(hiddenLocalIds)));
-    }catch(e){ /* storage unavailable/full — not critical, just won't persist across reloads */ }
-  }
-
-  function removeRenderedMessage(id){
-    const el = messagesEl.querySelector('[data-id="' + String(id).replace(/"/g,'') + '"]');
-    if(el) el.remove();
-    renderedIds.delete(id);
-    if(messagesEl.children.length === 0 && !emptyState.parentNode){
-      messagesEl.appendChild(emptyState);
-    }
-  }
-
-  function deleteForMe(id){
-    hiddenLocalIds.add(id);
-    saveHiddenLocalIds();
-    removeRenderedMessage(id);
-  }
-
-  async function deleteForEveryone(id){
-    try{
-      const res = await fetch('/api/messages', {
-        method: 'DELETE',
-        headers: {'Content-Type':'application/json'},
-        body: JSON.stringify({ room, id, sender: myName })
-      });
-      if(!res.ok){
-        const err = await res.json().catch(() => ({}));
-        showToast(err.error || 'Could not delete for everyone');
-        return;
-      }
-      removeRenderedMessage(id);
-    }catch(e){
-      showToast('Could not delete for everyone');
-    }
-  }
-
-  function closeAllMsgMenus(){
-    document.querySelectorAll('.msg-menu.show').forEach(m => m.classList.remove('show'));
-  }
-  document.addEventListener('click', closeAllMsgMenus);
 
   function fmtClock(ts){
     return new Date(ts).toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'});
-  }
-
-  function formatLastSeen(lastSeen, online) {
-    if (online) return 'Active now';
-    if (!lastSeen) return 'Vanishes after 1 hour';
-    const diffMs = Date.now() - lastSeen;
-    const diffSec = Math.floor(diffMs / 1000);
-    if (diffSec < 60) return 'Active now';
-    const diffMin = Math.floor(diffSec / 60);
-    if (diffMin < 60) return `Active ${diffMin}m ago`;
-    const diffHr = Math.floor(diffMin / 60);
-    if (diffHr < 24) return `Active ${diffHr}h ago`;
-    const diffDays = Math.floor(diffHr / 24);
-    return `Active ${diffDays}d ago`;
-  }
-
-  async function pollPresence() {
-    if (!room || !myName) return;
-    try {
-      // 1. Post heartbeat
-      await fetch('/api/presence', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ room, sender: myName })
-      });
-
-      // 2. Fetch presence
-      const res = await fetch('/api/presence?room=' + encodeURIComponent(room));
-      if (!res.ok) return;
-      const data = await res.json();
-
-      // 3. Find the peer. `vanish:participants:<room>` is an append-only set,
-      // so it also holds every name that ever joined — a typo, an old
-      // nickname, someone who dropped in once. Taking the first non-me entry
-      // meant SMEMBERS order decided whose name and status the header showed,
-      // which is how a room ends up permanently labelled with a stale name
-      // and "Active 3d ago". Prefer whoever is actually online, then fall
-      // back to the most recently seen.
-      const others = data.users.filter(u => u.name !== myName);
-      const peer = others.find(u => u.online)
-        || others.slice().sort((a, b) => (b.lastSeen || 0) - (a.lastSeen || 0))[0]
-        || null;
-      const statusDot = document.getElementById('statusDot');
-      const statusTextEl = document.getElementById('statusText');
-
-      if (peer) {
-        roomLabel.textContent = peer.name;
-        peerAvatar.textContent = peer.name.charAt(0).toUpperCase();
-        
-        const statusText = formatLastSeen(peer.lastSeen, peer.online);
-        if (statusTextEl) {
-          statusTextEl.textContent = statusText;
-        }
-        if (statusDot) {
-          statusDot.classList.toggle('offline', !peer.online);
-          statusDot.title = peer.online ? 'Online' : 'Last seen ' + fmtClock(peer.lastSeen);
-        }
-      } else {
-        // Fallback
-        roomLabel.textContent = room;
-        peerAvatar.textContent = room.charAt(0).toUpperCase();
-        if (statusTextEl) {
-          statusTextEl.textContent = 'Vanishes after 1 hour';
-        }
-        if (statusDot) {
-          statusDot.classList.add('offline');
-          statusDot.title = 'Messages vanish 1 hour after they\'re sent';
-        }
-      }
-    } catch (e) { /* ignore */ }
-  }
-
-  async function markAsSeen(ids) {
-    if (!ids || !ids.length) return;
-    try {
-      await fetch('/api/messages', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ room, action: 'seen', viewer: myName, ids })
-      });
-    } catch (e) { /* ignore */ }
-  }
-
-  function getMessageStatusText(m) {
-    if (m.sender !== myName) return '';
-    if (!m.seenBy || m.seenBy.length === 0) return 'Sent';
-    const peerSeen = m.seenBy.find(s => s.name !== myName);
-    if (peerSeen) {
-      return 'Seen ' + fmtClock(peerSeen.ts);
-    }
-    return 'Sent';
-  }
-
-  function updateMessageStatusInDOM(m) {
-    if (m.sender !== myName) return;
-    const wrap = document.querySelector(`.msg[data-id="${m.id}"]`);
-    if (!wrap) return;
-    let statusEl = wrap.querySelector('.msg-status');
-    if (!statusEl) {
-      statusEl = document.createElement('div');
-      statusEl.className = 'msg-status';
-      const fuse = wrap.querySelector('.fuse');
-      if (fuse) {
-        wrap.insertBefore(statusEl, fuse);
-      } else {
-        wrap.appendChild(statusEl);
-      }
-    }
-    statusEl.textContent = getMessageStatusText(m);
   }
 
   function unlockAudio(){
@@ -895,8 +498,7 @@
 
   function notifyIncoming(m){
     beep();
-    const preview = m.text ? (m.text.length > 60 ? m.text.slice(0,60) + '…' : m.text) : (m.audio ? '🎤 Voice message' : (m.image ? '📷 Photo' : ''));
-    showToast(m.sender + ': ' + preview);
+    showToast(m.sender + ': ' + (m.text.length > 60 ? m.text.slice(0,60) + '…' : m.text));
     if(document.hidden || !document.hasFocus()){
       flashTitle('💬 New message');
       // NOTE: this in-page Notification only fires while this tab/app is
@@ -906,7 +508,7 @@
       // subscribeForPush() below.
       if(notifyEnabled && 'Notification' in window && Notification.permission === 'granted'){
         try{
-          const n = new Notification(m.sender + ' — ' + room, { body: preview, tag: 'vanish-' + room });
+          const n = new Notification(m.sender + ' — ' + room, { body: m.text, tag: 'vanish-' + room });
           n.onclick = () => { window.focus(); n.close(); };
         }catch(e){ /* ignore */ }
       }
@@ -914,8 +516,8 @@
   }
 
   function setReplyTarget(m){
-    const previewText = m.text || (m.audio ? '🎤 Voice message' : (m.image ? '📷 Photo' : ''));
-    replyingTo = { id: m.id, sender: (m.sender === myName ? 'You' : m.sender), text: previewText };
+    clearEditTarget();
+    replyingTo = { id: m.id, sender: (m.sender === myName ? 'You' : m.sender), text: m.text };
     replyPreviewName.textContent = replyingTo.sender;
     replyPreviewText.textContent = replyingTo.text.length > 80 ? replyingTo.text.slice(0,80) + '…' : replyingTo.text;
     replyPreview.classList.add('show');
@@ -925,6 +527,49 @@
   function clearReplyTarget(){
     replyingTo = null;
     replyPreview.classList.remove('show');
+  }
+
+  function setEditTarget(m){
+    clearReplyTarget();
+    editingTarget = { id: m.id };
+    msgInput.value = m.text;
+    editPreview.classList.add('show');
+    sendBtn.innerHTML = ICON_CHECK;
+    msgInput.focus();
+  }
+
+  function clearEditTarget(){
+    if(editingTarget) msgInput.value = '';
+    editingTarget = null;
+    editPreview.classList.remove('show');
+    sendBtn.innerHTML = ICON_SEND;
+  }
+
+  // Header shows the other person's name once we've heard from them —
+  // falls back to the room code until then, instead of always showing
+  // the raw room code.
+  function updateHeaderName(name){
+    if(!name || name === myName || name === otherParticipant) return;
+    otherParticipant = name;
+    roomLabel.textContent = otherParticipant;
+    roomTag.title = 'room · ' + room;
+  }
+
+  async function editMessage(id, text){
+    try{
+      const res = await fetch('/api/messages', {
+        method:'PATCH',
+        headers:{'Content-Type':'application/json'},
+        body: JSON.stringify({room, sender: myName, id, text})
+      });
+      if(res.ok) return await res.json();
+      const err = await res.json().catch(() => ({}));
+      showToast(err.error || 'Could not edit message');
+      return null;
+    }catch(e){
+      showToast('Could not edit message');
+      return null;
+    }
   }
 
   // ================= Push notifications (real, background-capable) =================
@@ -962,15 +607,11 @@
           applicationServerKey: urlBase64ToUint8Array(VAPID_PUBLIC_KEY)
         });
       }
-      const res = await fetch('/api/subscribe', {
+      await fetch('/api/subscribe', {
         method: 'POST',
         headers: {'Content-Type': 'application/json'},
         body: JSON.stringify({ room, sender: myName, subscription: sub })
       });
-      // Without this check the bell reports "Notifications on" even when the
-      // server never stored the subscription (endpoint missing, Redis env
-      // vars unset, etc.), so push silently never arrives.
-      if(!res.ok) return false;
       return true;
     }catch(e){
       console.error('push subscribe failed', e);
@@ -992,393 +633,6 @@
       });
     }catch(e){ /* ignore */ }
   }
-
-  // ================= Images =================
-
-  const MAX_IMAGE_DATA_URL_LEN = 650000; // keep well under Upstash's request-size limit
-
-  function compressImageFile(file){
-    return new Promise((resolve, reject) => {
-      const reader = new FileReader();
-      reader.onerror = () => reject(new Error('read failed'));
-      reader.onload = () => {
-        const img = new Image();
-        img.onerror = () => reject(new Error('decode failed'));
-        img.onload = () => {
-          const MAX_DIM = 1280;
-          let { width, height } = img;
-          if(width > MAX_DIM || height > MAX_DIM){
-            if(width > height){
-              height = Math.round(height * (MAX_DIM / width));
-              width = MAX_DIM;
-            }else{
-              width = Math.round(width * (MAX_DIM / height));
-              height = MAX_DIM;
-            }
-          }
-          const canvas = document.createElement('canvas');
-          canvas.width = width;
-          canvas.height = height;
-          const ctx = canvas.getContext('2d');
-          ctx.drawImage(img, 0, 0, width, height);
-
-          let quality = 0.75;
-          let dataUrl = canvas.toDataURL('image/jpeg', quality);
-          let tries = 0;
-          while(dataUrl.length > MAX_IMAGE_DATA_URL_LEN && tries < 6 && quality > 0.2){
-            quality -= 0.12;
-            dataUrl = canvas.toDataURL('image/jpeg', quality);
-            tries++;
-          }
-          if(dataUrl.length > MAX_IMAGE_DATA_URL_LEN){
-            reject(new Error('too large'));
-            return;
-          }
-          resolve(dataUrl);
-        };
-        img.src = reader.result;
-      };
-      reader.readAsDataURL(file);
-    });
-  }
-
-  async function sendImageMessage(dataUrl){
-    const replyPayload = replyingTo ? { id: replyingTo.id, sender: replyingTo.sender, text: replyingTo.text } : null;
-    const caption = msgInput.value.trim();
-    msgInput.value = '';
-    clearReplyTarget();
-
-    if(emptyState.parentNode) emptyState.remove();
-    const tempId = 'sending-' + Date.now();
-    const tempWrap = addBubble({ id: tempId, sender: myName, text: caption, image: dataUrl, ts: Date.now() }, true);
-    messagesEl.scrollTop = messagesEl.scrollHeight;
-
-    const result = await postMessage(caption, replyPayload, dataUrl);
-    if(tempWrap && tempWrap.parentNode) tempWrap.remove();
-
-    if(!result || result.error){
-      showToast(result && result.error ? result.error : 'Could not send that photo');
-      return;
-    }
-    if(!renderedIds.has(result.id)){
-      if(emptyState.parentNode) emptyState.remove();
-      addBubble(result);
-      messagesEl.scrollTop = messagesEl.scrollHeight;
-    }
-  }
-
-  attachBtn.addEventListener('click', () => fileInput.click());
-
-  fileInput.addEventListener('change', async () => {
-    const file = fileInput.files[0];
-    fileInput.value = '';
-    if(!file) return;
-    if(!file.type.startsWith('image/')){
-      showToast('Please choose an image file');
-      return;
-    }
-    try{
-      const dataUrl = await compressImageFile(file);
-      await sendImageMessage(dataUrl);
-    }catch(e){
-      showToast('That image is too large or unsupported — try a different photo');
-    }
-  });
-
-  function openLightbox(src){
-    lightboxImg.src = src;
-    lightbox.classList.add('show');
-  }
-  function closeLightbox(){
-    lightbox.classList.remove('show');
-    lightboxImg.src = '';
-  }
-  lightboxClose.addEventListener('click', closeLightbox);
-  lightbox.addEventListener('click', (e) => { if(e.target === lightbox) closeLightbox(); });
-
-  // ================= Emoji =================
-
-  const EMOJIS = ['😀','😁','😂','🤣','😊','😍','😘','😉','😎','🤔','🥲','😢','😭','😡','🥳','😴',
-                  '🙄','😬','😅','🤯','🥹','😇','🤗','🫠','👍','👎','🙏','👏','🤝','💪','✌️','🤙',
-                  '❤️','🧡','💛','💚','💙','💜','🖤','💔','🔥','✨','💯','🎉','😱','👀','🤫','💀'];
-
-  (function buildEmojiPanel(){
-    EMOJIS.forEach(e => {
-      const b = document.createElement('button');
-      b.type = 'button';
-      b.textContent = e;
-      b.addEventListener('click', () => {
-        insertAtCursor(msgInput, e);
-      });
-      emojiPanel.appendChild(b);
-    });
-  })();
-
-  function insertAtCursor(input, text){
-    const start = input.selectionStart != null ? input.selectionStart : input.value.length;
-    const end = input.selectionEnd != null ? input.selectionEnd : input.value.length;
-    input.value = input.value.slice(0, start) + text + input.value.slice(end);
-    const pos = start + text.length;
-    input.focus();
-    input.setSelectionRange(pos, pos);
-  }
-
-  emojiBtn.addEventListener('click', (e) => {
-    e.stopPropagation();
-    emojiPanel.classList.toggle('show');
-  });
-  document.addEventListener('click', (e) => {
-    if(emojiPanel.classList.contains('show') && !emojiPanel.contains(e.target) && e.target !== emojiBtn){
-      emojiPanel.classList.remove('show');
-    }
-  });
-
-  // ================= /Images & Emoji =================
-
-  // ================= Voice messages =================
-
-  const MAX_AUDIO_BYTES = 520000;        // raw recording cap before base64 (~520KB)
-  const MAX_AUDIO_DATA_URL_LEN = 750000; // final data URL cap (matches server-side check)
-  const MAX_RECORD_MS = 120000;          // 2 minute safety cap
-
-  let mediaRecorder = null;
-  let recordedChunks = [];
-  let recordingStream = null;
-  let recordingStartTs = null;
-  let recordingTimerInterval = null;
-  let recordingAutoStopTimer = null;
-  let isRecording = false;
-
-  function fmtDuration(s){
-    s = Math.max(0, Math.floor(s || 0));
-    const mm = Math.floor(s / 60);
-    const ss = String(s % 60).padStart(2, '0');
-    return mm + ':' + ss;
-  }
-
-  function updateRecordingTimer(){
-    const s = Math.floor((Date.now() - recordingStartTs) / 1000);
-    recTimerEl.textContent = fmtDuration(s);
-  }
-
-  function stopMediaTracks(){
-    if(recordingStream){
-      recordingStream.getTracks().forEach(t => t.stop());
-      recordingStream = null;
-    }
-  }
-
-  function setRecordingUI(active){
-    isRecording = active;
-    composer.classList.toggle('recording', active);
-    micBtn.classList.toggle('active', active);
-    micBtn.innerHTML = active ? ICON_MIC_SEND : ICON_MIC_ON;
-    micBtn.title = active ? 'Stop and send' : 'Record voice message';
-  }
-
-  async function startVoiceRecording(){
-    if(isRecording) return;
-    if(!('mediaDevices' in navigator) || !navigator.mediaDevices.getUserMedia || typeof MediaRecorder === 'undefined'){
-      showToast('This browser can\'t record audio');
-      return;
-    }
-    unlockAudio();
-    try{
-      recordingStream = await navigator.mediaDevices.getUserMedia({ audio: true });
-    }catch(e){
-      showToast('Couldn\'t access microphone — check permissions');
-      return;
-    }
-
-    recordedChunks = [];
-    let mimeType = '';
-    const candidates = ['audio/webm;codecs=opus', 'audio/webm', 'audio/mp4'];
-    for(const c of candidates){
-      if(window.MediaRecorder && MediaRecorder.isTypeSupported && MediaRecorder.isTypeSupported(c)){
-        mimeType = c;
-        break;
-      }
-    }
-    try{
-      mediaRecorder = mimeType ? new MediaRecorder(recordingStream, { mimeType }) : new MediaRecorder(recordingStream);
-    }catch(e){
-      showToast('Could not start recording');
-      stopMediaTracks();
-      return;
-    }
-    mediaRecorder.ondataavailable = (e) => { if(e.data && e.data.size > 0) recordedChunks.push(e.data); };
-
-    mediaRecorder.start();
-    recordingStartTs = Date.now();
-    setRecordingUI(true);
-    updateRecordingTimer();
-    recordingTimerInterval = setInterval(updateRecordingTimer, 250);
-
-    recordingAutoStopTimer = setTimeout(() => {
-      if(isRecording){
-        showToast('Max recording length reached');
-        finishRecording();
-      }
-    }, MAX_RECORD_MS);
-  }
-
-  function cancelVoiceRecording(){
-    if(!isRecording) return;
-    if(mediaRecorder && mediaRecorder.state !== 'inactive'){
-      mediaRecorder.onstop = null;
-      try{ mediaRecorder.stop(); }catch(e){}
-    }
-    stopMediaTracks();
-    clearInterval(recordingTimerInterval);
-    clearTimeout(recordingAutoStopTimer);
-    recordedChunks = [];
-    setRecordingUI(false);
-  }
-
-  function blobToDataUrl(blob){
-    return new Promise((resolve, reject) => {
-      const reader = new FileReader();
-      reader.onerror = () => reject(new Error('read failed'));
-      reader.onload = () => resolve(reader.result);
-      reader.readAsDataURL(blob);
-    });
-  }
-
-  async function finishRecording(){
-    if(!isRecording || !mediaRecorder || mediaRecorder.state === 'inactive') return;
-    const durationSec = Math.max(1, Math.round((Date.now() - recordingStartTs) / 1000));
-
-    await new Promise((resolve) => {
-      mediaRecorder.onstop = resolve;
-      try{ mediaRecorder.stop(); }catch(e){ resolve(); }
-    });
-
-    stopMediaTracks();
-    clearInterval(recordingTimerInterval);
-    clearTimeout(recordingAutoStopTimer);
-    setRecordingUI(false);
-
-    if(!recordedChunks.length){
-      showToast('Recording was empty');
-      return;
-    }
-    const blob = new Blob(recordedChunks, { type: (mediaRecorder && mediaRecorder.mimeType) || 'audio/webm' });
-    recordedChunks = [];
-
-    if(blob.size > MAX_AUDIO_BYTES){
-      showToast('That recording is too long — try a shorter one');
-      return;
-    }
-
-    let dataUrl;
-    try{
-      dataUrl = await blobToDataUrl(blob);
-    }catch(e){
-      showToast('Could not process that recording');
-      return;
-    }
-    if(dataUrl.length > MAX_AUDIO_DATA_URL_LEN){
-      showToast('That recording is too long — try a shorter one');
-      return;
-    }
-
-    await sendVoiceMessage(dataUrl, durationSec);
-  }
-
-  async function sendVoiceMessage(dataUrl, durationSec){
-    const replyPayload = replyingTo ? { id: replyingTo.id, sender: replyingTo.sender, text: replyingTo.text } : null;
-    clearReplyTarget();
-
-    if(emptyState.parentNode) emptyState.remove();
-    const tempWrap = addBubble({ id: 'sending-' + Date.now(), sender: myName, text: '', audio: dataUrl, audioDuration: durationSec, ts: Date.now() }, true);
-    messagesEl.scrollTop = messagesEl.scrollHeight;
-
-    const result = await postMessage('', replyPayload, null, dataUrl, durationSec);
-    if(tempWrap && tempWrap.parentNode) tempWrap.remove();
-
-    if(!result || result.error){
-      showToast(result && result.error ? result.error : 'Could not send voice message');
-      return;
-    }
-    if(!renderedIds.has(result.id)){
-      if(emptyState.parentNode) emptyState.remove();
-      addBubble(result);
-      messagesEl.scrollTop = messagesEl.scrollHeight;
-    }
-  }
-
-  micBtn.addEventListener('click', () => {
-    if(!isRecording) startVoiceRecording();
-    else finishRecording();
-  });
-  recCancelBtn.addEventListener('click', cancelVoiceRecording);
-
-  function buildVoicePlayer(src, durationSec, isSending){
-    const wrap = document.createElement('div');
-    wrap.className = 'voice-player';
-
-    const audioEl = document.createElement('audio');
-    audioEl.src = src;
-    audioEl.preload = 'metadata';
-    wrap.appendChild(audioEl);
-
-    const playBtn = document.createElement('button');
-    playBtn.type = 'button';
-    playBtn.className = 'voice-play-btn';
-    playBtn.innerHTML = ICON_VOICE_PLAY;
-    wrap.appendChild(playBtn);
-
-    const mid = document.createElement('div');
-    mid.className = 'voice-mid';
-    const track = document.createElement('div');
-    track.className = 'voice-track';
-    const fill = document.createElement('div');
-    fill.className = 'voice-track-fill';
-    track.appendChild(fill);
-    const timeEl = document.createElement('div');
-    timeEl.className = 'voice-time';
-    timeEl.textContent = '0:00 / ' + fmtDuration(durationSec);
-    mid.appendChild(track);
-    mid.appendChild(timeEl);
-    wrap.appendChild(mid);
-
-    if(isSending){
-      playBtn.disabled = true;
-      return wrap;
-    }
-
-    playBtn.addEventListener('click', () => {
-      if(audioEl.paused){
-        document.querySelectorAll('.voice-player audio').forEach(a => { if(a !== audioEl && !a.paused) a.pause(); });
-        audioEl.play().catch(() => { showToast('Could not play that voice message'); });
-      }else{
-        audioEl.pause();
-      }
-    });
-    audioEl.addEventListener('play', () => { playBtn.innerHTML = ICON_VOICE_PAUSE; });
-    audioEl.addEventListener('pause', () => { playBtn.innerHTML = ICON_VOICE_PLAY; });
-    audioEl.addEventListener('ended', () => {
-      playBtn.innerHTML = ICON_VOICE_PLAY;
-      fill.style.width = '0%';
-      timeEl.textContent = '0:00 / ' + fmtDuration(durationSec);
-    });
-    audioEl.addEventListener('timeupdate', () => {
-      const dur = (audioEl.duration && isFinite(audioEl.duration)) ? audioEl.duration : durationSec;
-      const frac = dur ? Math.min(1, audioEl.currentTime / dur) : 0;
-      fill.style.width = (frac * 100) + '%';
-      timeEl.textContent = fmtDuration(audioEl.currentTime) + ' / ' + fmtDuration(dur);
-    });
-    track.addEventListener('click', (e) => {
-      const rect = track.getBoundingClientRect();
-      const frac = Math.min(1, Math.max(0, (e.clientX - rect.left) / rect.width));
-      const dur = (audioEl.duration && isFinite(audioEl.duration)) ? audioEl.duration : durationSec;
-      if(dur) audioEl.currentTime = frac * dur;
-    });
-
-    return wrap;
-  }
-
-  // ================= /Voice messages =================
 
   // ================= Calling =================
 
@@ -1462,13 +716,6 @@
     camBtn.classList.remove('off');
     camBtn.innerHTML = ICON_CAM;
     hideOverlay();
-    // The visibilitychange handler only stands the poll loop down if no call
-    // was in progress at the moment we were backgrounded. A call that then
-    // ends while the app is still hidden would leave both timers running
-    // indefinitely — the exact battery/quota drain that check exists to stop.
-    // This is the one place callState returns to 'idle', so it covers a local
-    // hangup and a remote hangup/decline/busy alike.
-    if(document.hidden) stopPolling();
   }
 
   function teardownConnection(){
@@ -1509,22 +756,7 @@
         }
         startCallTimer();
       }
-      if(conn.connectionState === 'failed' && callState !== 'idle'){
-        showToast('Call failed — check your connection and try again');
-        endCall(false);
-      }
-      if(conn.connectionState === 'disconnected' && callState !== 'idle'){
-        // Give it a few seconds to recover on its own (common on flaky
-        // mobile connections) before treating it as a dropped call.
-        callStatus.textContent = 'Reconnecting…';
-        setTimeout(() => {
-          if(pc === conn && (conn.connectionState === 'disconnected' || conn.connectionState === 'failed')){
-            showToast('Call ended — connection lost');
-            endCall(false);
-          }
-        }, 6000);
-      }
-      if(conn.connectionState === 'closed' && callState !== 'idle'){
+      if(['failed','disconnected','closed'].includes(conn.connectionState) && callState !== 'idle'){
         showToast('Call ended');
         endCall(false);
       }
@@ -1594,6 +826,7 @@
     callDirection = 'incoming';
     callState = 'ringing';
     callTypeActive = sig.callType || 'audio';
+    updateHeaderName(sig.sender);
 
     callName.dataset.other = sig.sender;
     callName.textContent = sig.sender;
@@ -1739,80 +972,56 @@
 
   // ================= /Calling =================
 
+  // Map of id -> { data, bubbleEl, editedTagEl } so we can update a
+  // message's bubble in place when it gets edited, instead of only
+  // ever appending new bubbles.
+  let renderedMsgs = new Map();
+
   function renderAll(list){
     messagesEl.innerHTML = '';
-    renderedIds = new Set();
-    list.forEach(m => { if(hiddenLocalIds.has(m.id)) renderedIds.add(m.id); });
-    const visible = list.filter(m => !hiddenLocalIds.has(m.id));
-    if(visible.length === 0){
+    renderedMsgs = new Map();
+    if(list.length === 0){
       messagesEl.appendChild(emptyState);
       return;
     }
-    visible.forEach(addBubble);
+    list.forEach(m => {
+      addBubble(m);
+      if(m.sender !== myName) updateHeaderName(m.sender);
+    });
     messagesEl.scrollTop = messagesEl.scrollHeight;
   }
 
-  function addBubble(m, isSending){
-    renderedIds.add(m.id);
+  function addBubble(m){
     const wrap = document.createElement('div');
-    wrap.className = 'msg ' + (m.sender === myName ? 'mine' : 'theirs') + (isSending ? ' img-sending' : '');
-    if(!isSending) wrap.dataset.id = m.id;
+    wrap.className = 'msg ' + (m.sender === myName ? 'mine' : 'theirs');
+    wrap.dataset.id = m.id;
 
     const meta = document.createElement('div');
     meta.className = 'meta';
     const metaText = document.createElement('span');
-    metaText.textContent = (m.sender === myName ? 'You' : m.sender) + ' · ' + (isSending ? 'Sending…' : fmtClock(m.ts));
+    metaText.textContent = (m.sender === myName ? 'You' : m.sender) + ' · ' + fmtClock(m.ts);
     meta.appendChild(metaText);
 
-    let menu = null;
-    if(!isSending){
-      const replyBtn = document.createElement('button');
-      replyBtn.className = 'reply-btn';
-      replyBtn.type = 'button';
-      replyBtn.textContent = '↩ reply';
-      replyBtn.addEventListener('click', () => setReplyTarget(m));
-      meta.appendChild(replyBtn);
+    const editedTag = document.createElement('span');
+    editedTag.className = 'edited-tag';
+    editedTag.textContent = '(edited)';
+    editedTag.style.display = m.edited ? '' : 'none';
+    meta.appendChild(editedTag);
 
-      const menuBtn = document.createElement('button');
-      menuBtn.className = 'menu-btn';
-      menuBtn.type = 'button';
-      menuBtn.textContent = '⋮';
-      menuBtn.title = 'Message options';
-      meta.appendChild(menuBtn);
+    const replyBtn = document.createElement('button');
+    replyBtn.className = 'reply-btn';
+    replyBtn.type = 'button';
+    replyBtn.textContent = '↩ reply';
+    replyBtn.addEventListener('click', () => setReplyTarget(renderedMsgs.get(m.id).data));
+    meta.appendChild(replyBtn);
 
-      menu = document.createElement('div');
-      menu.className = 'msg-menu';
-
-      const delMeBtn = document.createElement('button');
-      delMeBtn.type = 'button';
-      delMeBtn.className = 'msg-menu-item';
-      delMeBtn.textContent = 'Delete for me';
-      delMeBtn.addEventListener('click', (e) => {
-        e.stopPropagation();
-        closeAllMsgMenus();
-        deleteForMe(m.id);
-      });
-      menu.appendChild(delMeBtn);
-
-      if(m.sender === myName){
-        const delAllBtn = document.createElement('button');
-        delAllBtn.type = 'button';
-        delAllBtn.className = 'msg-menu-item danger';
-        delAllBtn.textContent = 'Delete for everyone';
-        delAllBtn.addEventListener('click', (e) => {
-          e.stopPropagation();
-          closeAllMsgMenus();
-          deleteForEveryone(m.id);
-        });
-        menu.appendChild(delAllBtn);
-      }
-
-      menuBtn.addEventListener('click', (e) => {
-        e.stopPropagation();
-        const wasOpen = menu.classList.contains('show');
-        closeAllMsgMenus();
-        if(!wasOpen) menu.classList.add('show');
-      });
+    if(m.sender === myName){
+      const editBtn = document.createElement('button');
+      editBtn.className = 'reply-btn';
+      editBtn.type = 'button';
+      editBtn.textContent = '✎ edit';
+      editBtn.addEventListener('click', () => setEditTarget(renderedMsgs.get(m.id).data));
+      meta.appendChild(editBtn);
     }
 
     let quote = null;
@@ -1826,29 +1035,8 @@
     }
 
     const bubble = document.createElement('div');
-    bubble.className = 'bubble' + (m.image ? ' has-image' : '') + (m.audio ? ' has-audio' : '');
-    if(m.audio){
-      // Server-stored messages carry `duration`; locally-built optimistic
-      // bubbles carry `audioDuration`. Read both so a voice note fetched back
-      // from the server shows its real length instead of 0:00.
-      bubble.appendChild(buildVoicePlayer(m.audio, m.duration || m.audioDuration || 0, isSending));
-    }else if(m.image){
-      const img = document.createElement('img');
-      img.className = 'msg-image';
-      img.loading = 'lazy';
-      img.src = m.image;
-      img.alt = 'photo';
-      if(!isSending) img.addEventListener('click', () => openLightbox(m.image));
-      bubble.appendChild(img);
-      if(m.text){
-        const cap = document.createElement('div');
-        cap.className = 'caption';
-        cap.textContent = m.text;
-        bubble.appendChild(cap);
-      }
-    }else{
-      bubble.textContent = m.text;
-    }
+    bubble.className = 'bubble';
+    bubble.textContent = m.text;
 
     const fuse = document.createElement('div');
     fuse.className = 'fuse';
@@ -1861,21 +1049,12 @@
     fuse.appendChild(fill);
 
     wrap.appendChild(meta);
-    if(menu) wrap.appendChild(menu);
     if(quote) wrap.appendChild(quote);
     wrap.appendChild(bubble);
-
-    if(m.sender === myName && !isSending){
-      const statusEl = document.createElement('div');
-      statusEl.className = 'msg-status';
-      statusEl.textContent = getMessageStatusText(m);
-      wrap.appendChild(statusEl);
-    }
-
-    if(!isSending) wrap.appendChild(fuse);
+    wrap.appendChild(fuse);
     messagesEl.appendChild(wrap);
 
-    if(isSending) return wrap;
+    renderedMsgs.set(m.id, { data: m, bubbleEl: bubble, editedTagEl: editedTag });
 
     requestAnimationFrame(() => {
       fill.style.transition = 'width ' + remainMs + 'ms linear';
@@ -1884,94 +1063,41 @@
 
     setTimeout(() => {
       wrap.remove();
-      renderedIds.delete(m.id);
+      renderedMsgs.delete(m.id);
       if(messagesEl.children.length === 0) messagesEl.appendChild(emptyState);
     }, remainMs + 200);
-
-    return wrap;
   }
 
-  function appendNew(list){
+  function updateBubble(entry, m){
+    entry.data = m;
+    entry.bubbleEl.textContent = m.text;
+    entry.editedTagEl.style.display = m.edited ? '' : 'none';
+  }
+
+  function reconcile(list){
     let added = false;
     list.forEach(m => {
-      if(hiddenLocalIds.has(m.id)){
-        renderedIds.add(m.id);
-        return;
-      }
-      if(!renderedIds.has(m.id)){
+      const existing = renderedMsgs.get(m.id);
+      if(!existing){
         if(emptyState.parentNode) emptyState.remove();
         addBubble(m);
         added = true;
-        if(m.sender !== myName) notifyIncoming(m);
-      } else {
-        updateMessageStatusInDOM(m);
+        if(m.sender !== myName){
+          notifyIncoming(m);
+          updateHeaderName(m.sender);
+        }
+      }else if(existing.data.text !== m.text || existing.data.edited !== m.edited){
+        updateBubble(existing, m);
       }
     });
     if(added) messagesEl.scrollTop = messagesEl.scrollHeight;
   }
 
-  function reconcileDeleted(freshList){
-    // Anything we've rendered that's no longer in the server's list was
-    // deleted "for everyone" (by us or the other person) — remove it here
-    // too. Messages hidden only via "delete for me" are skipped, since the
-    // server never removed those and they should stay hidden, not "come
-    // back" as a deletion.
-    const freshIds = new Set(freshList.map(m => m.id));
-    renderedIds.forEach(id => {
-      if(typeof id === 'string' && id.indexOf('sending-') === 0) return;
-      if(hiddenLocalIds.has(id)) return;
-      if(!freshIds.has(id)) removeRenderedMessage(id);
-    });
-  }
-
   async function poll(){
     const fresh = await fetchMessages();
-
-    // Mark incoming messages as seen
-    const unseenIds = fresh
-      .filter(m => m.sender !== myName && (!m.seenBy || !m.seenBy.some(s => s.name === myName)))
-      .map(m => m.id);
-    if(unseenIds.length > 0){
-      // Deliberately not awaited. The receipt is for the other person's
-      // benefit, so blocking our own render on that round-trip delayed every
-      // incoming message by the latency of a second request.
-      markAsSeen(unseenIds);
-    }
-
-    appendNew(fresh);
-    reconcileDeleted(fresh);
+    reconcile(fresh);
     pollSignals();
   }
-
-  // Polling is the app's entire transport, so it has to be startable and
-  // stoppable — left running unconditionally it keeps hitting the network
-  // every 2s while the phone is in your pocket, which drains the battery and
-  // burns through the Upstash request quota for nothing.
-  function startPolling(){
-    stopPolling();
-    pollTimer = setInterval(poll, 2000);
-    presenceTimer = setInterval(pollPresence, 10000);
-  }
-
-  function stopPolling(){
-    clearInterval(pollTimer);
-    pollTimer = null;
-    clearInterval(presenceTimer);
-    presenceTimer = null;
-  }
-
-  document.addEventListener('visibilitychange', () => {
-    if(!room) return;
-    if(document.hidden){
-      // Mid-call the signalling loop must stay alive, or a hangup or a late
-      // ICE candidate from the other side is never seen. Otherwise stand down.
-      if(callState === 'idle') stopPolling();
-    }else{
-      startPolling();
-      poll();
-      pollPresence();
-    }
-  });
 
   enterBtn.addEventListener('click', async () => {
     errMsg.textContent = '';
@@ -1983,9 +1109,9 @@
 
     myName = nm;
     room = rm;
-    roomLabel.textContent = room;
-    peerAvatar.textContent = room.charAt(0).toUpperCase();
-    loadHiddenLocalIds();
+    otherParticipant = null;
+    roomLabel.textContent = 'room · ' + room;
+    roomTag.title = 'room · ' + room;
 
     landing.classList.add('hidden');
     chatwrap.classList.add('active');
@@ -1993,8 +1119,7 @@
     const fresh = await fetchMessages();
     renderAll(fresh);
 
-    startPolling();
-    pollPresence();
+    pollTimer = setInterval(poll, 2000);
     msgInput.focus();
 
     // If notification permission was already granted in a previous visit,
@@ -2037,29 +1162,30 @@
   });
 
   cancelReply.addEventListener('click', clearReplyTarget);
+  cancelEdit.addEventListener('click', clearEditTarget);
 
   composer.addEventListener('submit', async (e) => {
     e.preventDefault();
-    if(composer.classList.contains('recording')) return;
     const text = msgInput.value.trim();
     if(!text) return;
+
+    if(editingTarget){
+      const id = editingTarget.id;
+      const entry = renderedMsgs.get(id);
+      editingTarget = null; // clear before await so clearEditTarget() below doesn't wipe msgInput mid-flight
+      editPreview.classList.remove('show');
+      sendBtn.innerHTML = ICON_SEND;
+      msgInput.value = '';
+      const updated = await editMessage(id, text);
+      if(updated && entry) updateBubble(entry, updated);
+      return;
+    }
+
     msgInput.value = '';
     const replyPayload = replyingTo ? { id: replyingTo.id, sender: replyingTo.sender, text: replyingTo.text } : null;
     clearReplyTarget();
-
-    if(emptyState.parentNode) emptyState.remove();
-    const tempId = 'sending-' + Date.now();
-    const tempWrap = addBubble({ id: tempId, sender: myName, text, ts: Date.now() }, true);
-    messagesEl.scrollTop = messagesEl.scrollHeight;
-
     const m = await postMessage(text, replyPayload);
-    if(tempWrap && tempWrap.parentNode) tempWrap.remove();
-
-    if(m && m.error){
-      showToast(m.error);
-      return;
-    }
-    if(m && !renderedIds.has(m.id)){
+    if(m && !renderedMsgs.has(m.id)){
       if(emptyState.parentNode) emptyState.remove();
       addBubble(m);
       messagesEl.scrollTop = messagesEl.scrollHeight;

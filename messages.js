@@ -1,0 +1,186 @@
+// Vercel serverless function: /api/messages
+// Stores each room's messages as one JSON array in Upstash Redis (free tier).
+// Anything older than LIFETIME_MS is filtered out on every read, and written
+// back trimmed, so nothing lingers past an hour.
+//
+// On POST, it also sends a real Web Push notification (if VAPID env vars
+// are set) to anyone in the room who has subscribed via /api/subscribe —
+// this is what lets a message reach a closed/backgrounded app, including
+// an installed iPhone home-screen app.
+//
+// PATCH lets the original sender edit a message's text after sending it.
+// The message keeps its original id/ts (so it doesn't jump position or
+// reset its vanish timer) but gets `edited: true` and an `editedTs`.
+
+const webpush = require('web-push');
+
+const LIFETIME_MS = 60 * 60 * 1000; // 1 hour
+
+const VAPID_PUBLIC_KEY = process.env.VAPID_PUBLIC_KEY;
+const VAPID_PRIVATE_KEY = process.env.VAPID_PRIVATE_KEY;
+const VAPID_SUBJECT = process.env.VAPID_SUBJECT || 'mailto:admin@example.com';
+
+if (VAPID_PUBLIC_KEY && VAPID_PRIVATE_KEY) {
+  webpush.setVapidDetails(VAPID_SUBJECT, VAPID_PUBLIC_KEY, VAPID_PRIVATE_KEY);
+}
+
+async function redis(cmd) {
+  const url = process.env.UPSTASH_REDIS_REST_URL;
+  const token = process.env.UPSTASH_REDIS_REST_TOKEN;
+  if (!url || !token) {
+    throw new Error('Missing UPSTASH_REDIS_REST_URL / UPSTASH_REDIS_REST_TOKEN env vars');
+  }
+  const r = await fetch(url, {
+    method: 'POST',
+    headers: {
+      Authorization: `Bearer ${token}`,
+      'Content-Type': 'application/json'
+    },
+    body: JSON.stringify(cmd)
+  });
+  const data = await r.json();
+  if (data.error) throw new Error(data.error);
+  return data.result;
+}
+
+function slugRoom(r) {
+  return String(r || '').trim().toLowerCase().replace(/\s+/g, '-').slice(0, 60);
+}
+
+async function notifySubscribers(room, sender, text) {
+  if (!VAPID_PUBLIC_KEY || !VAPID_PRIVATE_KEY) return; // push not configured yet
+
+  try {
+    const setKey = 'vanish:subs:' + room;
+    const members = await redis(['SMEMBERS', setKey]);
+    if (!members || !members.length) return;
+
+    const payload = JSON.stringify({
+      title: sender,
+      body: text.length > 120 ? text.slice(0, 120) + '…' : text,
+      room
+    });
+
+    await Promise.all(members.filter(name => name !== sender).map(async (name) => {
+      const subKey = 'vanish:sub:' + room + ':' + name;
+      const raw = await redis(['GET', subKey]);
+      if (!raw) return;
+      const subscription = JSON.parse(raw);
+      try {
+        await webpush.sendNotification(subscription, payload);
+      } catch (err) {
+        if (err.statusCode === 404 || err.statusCode === 410) {
+          // subscription is dead (user revoked, uninstalled, etc.) — clean up
+          await redis(['DEL', subKey]);
+          await redis(['SREM', setKey, name]);
+        }
+      }
+    }));
+  } catch (err) {
+    // never let a push failure break sending the actual message
+    console.error('push notify failed:', err.message);
+  }
+}
+
+module.exports = async (req, res) => {
+  res.setHeader('Access-Control-Allow-Origin', '*');
+  res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PATCH, OPTIONS');
+  res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
+  if (req.method === 'OPTIONS') return res.status(200).end();
+
+  try {
+    if (req.method === 'GET') {
+      const room = slugRoom(req.query.room);
+      if (!room) return res.status(400).json({ error: 'room is required' });
+      const key = 'vanish:' + room;
+
+      const raw = await redis(['GET', key]);
+      let arr = raw ? JSON.parse(raw) : [];
+      const now = Date.now();
+      const fresh = arr.filter(m => now - m.ts < LIFETIME_MS);
+      if (fresh.length !== arr.length) {
+        await redis(['SET', key, JSON.stringify(fresh)]);
+      }
+      return res.status(200).json(fresh);
+    }
+
+    if (req.method === 'POST') {
+      const body = typeof req.body === 'string' ? JSON.parse(req.body || '{}') : (req.body || {});
+      const room = slugRoom(body.room);
+      const sender = String(body.sender || '').trim().slice(0, 24);
+      const text = String(body.text || '').trim().slice(0, 1000);
+      if (!room || !sender || !text) {
+        return res.status(400).json({ error: 'room, sender and text are required' });
+      }
+      const key = 'vanish:' + room;
+
+      const raw = await redis(['GET', key]);
+      let arr = raw ? JSON.parse(raw) : [];
+      const now = Date.now();
+      arr = arr.filter(m => now - m.ts < LIFETIME_MS);
+
+      let replyTo = null;
+      if (body.replyTo && body.replyTo.id) {
+        replyTo = {
+          id: String(body.replyTo.id).slice(0, 64),
+          sender: String(body.replyTo.sender || '').trim().slice(0, 24),
+          text: String(body.replyTo.text || '').trim().slice(0, 120)
+        };
+      }
+
+      const msg = {
+        id: now + '-' + Math.random().toString(36).slice(2, 8),
+        sender,
+        text,
+        ts: now,
+        edited: false,
+        editedTs: null,
+        replyTo
+      };
+      arr.push(msg);
+      await redis(['SET', key, JSON.stringify(arr)]);
+
+      await notifySubscribers(room, sender, text);
+
+      return res.status(200).json(msg);
+    }
+
+    if (req.method === 'PATCH') {
+      const body = typeof req.body === 'string' ? JSON.parse(req.body || '{}') : (req.body || {});
+      const room = slugRoom(body.room);
+      const sender = String(body.sender || '').trim().slice(0, 24);
+      const id = String(body.id || '').trim().slice(0, 64);
+      const text = String(body.text || '').trim().slice(0, 1000);
+      if (!room || !sender || !id || !text) {
+        return res.status(400).json({ error: 'room, sender, id and text are required' });
+      }
+      const key = 'vanish:' + room;
+
+      const raw = await redis(['GET', key]);
+      let arr = raw ? JSON.parse(raw) : [];
+      const now = Date.now();
+      arr = arr.filter(m => now - m.ts < LIFETIME_MS);
+
+      const idx = arr.findIndex(m => m.id === id);
+      if (idx === -1) {
+        return res.status(404).json({ error: 'message not found (it may have already vanished)' });
+      }
+      if (arr[idx].sender !== sender) {
+        return res.status(403).json({ error: 'only the original sender can edit this message' });
+      }
+
+      arr[idx] = Object.assign({}, arr[idx], {
+        text,
+        edited: true,
+        editedTs: now
+      });
+
+      await redis(['SET', key, JSON.stringify(arr)]);
+      return res.status(200).json(arr[idx]);
+    }
+
+    return res.status(405).json({ error: 'method not allowed' });
+  } catch (err) {
+    return res.status(500).json({ error: err.message });
+  }
+};
