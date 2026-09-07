@@ -1,1 +1,0 @@
-node .\jira-create-tickets.js
