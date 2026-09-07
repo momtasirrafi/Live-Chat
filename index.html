@@ -622,11 +622,13 @@
   // only needs the /api/signal relay — it's the actual media path that
   // needs a working TURN server.
   //
-  // Fix: sign up free at https://dashboard.metered.ca/signup (20GB/month
-  // free), create an app, and paste your app name + API key below. This
-  // fetches fresh, personal TURN credentials instead of the shared ones.
-  // Leaving these blank falls back to the shared demo credentials below,
-  // same as before.
+  // Fix: either sign up free at https://dashboard.cloudflare.com (Realtime
+  // -> TURN Server -> Create), add TURN_KEY_ID + TURN_KEY_API_TOKEN as
+  // Vercel env vars, and redeploy (see api/turn.js) — or sign up free at
+  // https://dashboard.metered.ca/signup, create an app, and paste your
+  // app name + API key below. Either one replaces the shared credentials
+  // with personal ones. Leaving both unconfigured falls back to the
+  // shared demo credentials below, same as before.
   const TURN_APP_NAME = 'callingapi';
   const TURN_API_KEY = '8de3be9bdb861b1e5c968661c15760d61093';
 
@@ -638,10 +640,22 @@
     { urls: 'turn:openrelay.metered.ca:443?transport=tcp', username: 'openrelayproject', credential: 'openrelayproject' }
   ];
 
-  // Swaps in fresh, personal TURN credentials if TURN_APP_NAME/TURN_API_KEY
-  // are set above. Called once per room session — safe to fail silently
-  // and keep the shared fallback if the account isn't configured yet.
+  // Swaps in fresh, personal TURN credentials, trying options in order:
+  //   1. /api/turn — our own serverless endpoint (Cloudflare Realtime),
+  //      if TURN_KEY_ID/TURN_KEY_API_TOKEN are set in Vercel.
+  //   2. Metered.ca, if TURN_APP_NAME/TURN_API_KEY above are filled in.
+  //   3. Otherwise keeps the shared fallback list above.
+  // Safe to fail silently at each step — worst case, calls fall back to
+  // one step down instead of erroring.
   async function refreshIceServers(){
+    try{
+      const res = await fetch('/api/turn');
+      if(res.ok){
+        const servers = await res.json();
+        if(Array.isArray(servers) && servers.length){ ICE_SERVERS = servers; return; }
+      }
+    }catch(e){ /* fall through to Metered / shared fallback */ }
+
     if(TURN_APP_NAME.indexOf('PASTE_YOUR') === 0 || TURN_API_KEY.indexOf('PASTE_YOUR') === 0) return;
     try{
       const res = await fetch('https://' + TURN_APP_NAME + '.metered.live/api/v1/turn/credentials?apiKey=' + encodeURIComponent(TURN_API_KEY));
