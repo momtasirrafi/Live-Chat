@@ -632,12 +632,16 @@
   const TURN_APP_NAME = 'callingapi';
   const TURN_API_KEY = '8de3be9bdb861b1e5c968661c15760d61093';
 
+  // Personal fallback credentials (from Metered's "Show ICE Servers Array"),
+  // used if the dynamic fetch above ever fails. Replaces the old shared
+  // demo credentials, which were the actual root cause of calls never
+  // connecting.
   let ICE_SERVERS = [
-    { urls: 'stun:stun.l.google.com:19302' },
-    { urls: 'stun:stun1.l.google.com:19302' },
-    { urls: 'turn:openrelay.metered.ca:80', username: 'openrelayproject', credential: 'openrelayproject' },
-    { urls: 'turn:openrelay.metered.ca:443', username: 'openrelayproject', credential: 'openrelayproject' },
-    { urls: 'turn:openrelay.metered.ca:443?transport=tcp', username: 'openrelayproject', credential: 'openrelayproject' }
+    { urls: 'stun:stun.relay.metered.ca:80' },
+    { urls: 'turn:global.relay.metered.ca:80', username: 'dc169ee351c9c0eecb3b6ca9', credential: '07nZ5E0nm5/mW59s' },
+    { urls: 'turn:global.relay.metered.ca:80?transport=tcp', username: 'dc169ee351c9c0eecb3b6ca9', credential: '07nZ5E0nm5/mW59s' },
+    { urls: 'turn:global.relay.metered.ca:443', username: 'dc169ee351c9c0eecb3b6ca9', credential: '07nZ5E0nm5/mW59s' },
+    { urls: 'turns:global.relay.metered.ca:443?transport=tcp', username: 'dc169ee351c9c0eecb3b6ca9', credential: '07nZ5E0nm5/mW59s' }
   ];
 
   // Swaps in fresh, personal TURN credentials, trying options in order:
