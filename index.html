@@ -613,28 +613,57 @@
   // but no audio/video ever connects. The TURN entries below relay the
   // call through a server instead, which is what makes cross-network calls
   // actually work. These are free/public (Open Relay Project) — fine for
-  // getting this working now, but they're shared and rate-limited. For
-  // reliable long-term use, get your own free TURN credentials at
-  // https://www.metered.ca/tools/openrelay/ (or run coturn yourself) and
-  // swap them in here.
-  const ICE_SERVERS = [
+  // getting this working now, but they're shared across countless tutorial
+  // projects, which is exactly why calls often ring on both sides and then
+  // never connect: on any network that actually requires a TURN relay
+  // (many mobile carriers, corporate/school Wi-Fi, some home routers with
+  // symmetric NAT), that shared demo account can be throttled or simply
+  // fail auth, silently. STUN-only calls still "ring" fine since ringing
+  // only needs the /api/signal relay — it's the actual media path that
+  // needs a working TURN server.
+  //
+  // Fix: sign up free at https://dashboard.metered.ca/signup (20GB/month
+  // free), create an app, and paste your app name + API key below. This
+  // fetches fresh, personal TURN credentials instead of the shared ones.
+  // Leaving these blank falls back to the shared demo credentials below,
+  // same as before.
+  const TURN_APP_NAME = 'PASTE_YOUR_METERED_APP_NAME_HERE';
+  const TURN_API_KEY = 'PASTE_YOUR_METERED_API_KEY_HERE';
+
+  let ICE_SERVERS = [
     { urls: 'stun:stun.l.google.com:19302' },
     { urls: 'stun:stun1.l.google.com:19302' },
     { urls: 'turn:openrelay.metered.ca:80', username: 'openrelayproject', credential: 'openrelayproject' },
     { urls: 'turn:openrelay.metered.ca:443', username: 'openrelayproject', credential: 'openrelayproject' },
     { urls: 'turn:openrelay.metered.ca:443?transport=tcp', username: 'openrelayproject', credential: 'openrelayproject' }
   ];
+
+  // Swaps in fresh, personal TURN credentials if TURN_APP_NAME/TURN_API_KEY
+  // are set above. Called once per room session — safe to fail silently
+  // and keep the shared fallback if the account isn't configured yet.
+  async function refreshIceServers(){
+    if(TURN_APP_NAME.indexOf('PASTE_YOUR') === 0 || TURN_API_KEY.indexOf('PASTE_YOUR') === 0) return;
+    try{
+      const res = await fetch('https://' + TURN_APP_NAME + '.metered.live/api/v1/turn/credentials?apiKey=' + encodeURIComponent(TURN_API_KEY));
+      if(res.ok){
+        const servers = await res.json();
+        if(Array.isArray(servers) && servers.length) ICE_SERVERS = servers;
+      }
+    }catch(e){ /* keep the fallback list above */ }
+  }
+
   let pc = null;
   let localStream = null;
   let currentCallId = null;
   let callDirection = null;   // 'outgoing' | 'incoming'
-  let callState = 'idle';     // 'idle' | 'calling' | 'ringing' | 'connected'
+  let callState = 'idle';     // 'idle' | 'calling' | 'ringing' | 'connecting' | 'connected'
   let callTypeActive = null;  // 'audio' | 'video'
   let seenSignalIds = new Set();
   let pendingCandidates = [];
   let ringTimer = null;
   let callTimerInterval = null;
   let callTimeoutTimer = null;
+  let connectTimeoutTimer = null; // guards the gap between "answer exchanged" and "media actually connected"
   let callStartTs = null;
 
   const landing = document.getElementById('landing');
@@ -1767,6 +1796,22 @@
     callTimer.textContent = '';
   }
 
+  function startConnectTimeout(){
+    clearTimeout(connectTimeoutTimer);
+    // Once the offer/answer exchange is done, actual media (ICE) should
+    // connect within a few seconds if TURN works. If it doesn't within
+    // this window, the two networks likely both need a TURN relay and
+    // the configured one isn't working — surface that clearly instead of
+    // leaving the call looking "stuck" until the 45s ring timeout.
+    connectTimeoutTimer = setTimeout(() => {
+      if(callState === 'connecting'){
+        showToast("Couldn't connect — this network may need working TURN credentials (see README)");
+        sendSignal('hangup');
+        endCall(false);
+      }
+    }, 20000);
+  }
+
   function resetCallUI(){
     callState = 'idle';
     callDirection = null;
@@ -1775,6 +1820,7 @@
     stopRingback();
     stopCallTimer();
     clearTimeout(callTimeoutTimer);
+    clearTimeout(connectTimeoutTimer);
     setPanel(null);
     callVideoWrap.classList.remove('show');
     callAudioUi.style.display = 'flex';
@@ -1806,6 +1852,12 @@
         sendSignal('candidate', { candidate: e.candidate.toJSON ? e.candidate.toJSON() : e.candidate });
       }
     };
+    // Diagnostics only (visible in the browser devtools console) — handy
+    // for confirming whether a candidate pair actually used TURN relay
+    // when debugging connection issues.
+    conn.oniceconnectionstatechange = () => {
+      console.log('[call] ICE connection state:', conn.iceConnectionState);
+    };
     conn.ontrack = (e) => {
       const stream = e.streams[0];
       if(callTypeActive === 'video'){
@@ -1817,6 +1869,7 @@
     conn.onconnectionstatechange = () => {
       if(conn.connectionState === 'connected' && callState !== 'connected'){
         callState = 'connected';
+        clearTimeout(connectTimeoutTimer);
         stopRingback();
         callStatus.textContent = 'Connected';
         setPanel(callTypeActive === 'video' ? null : connectedControls);
@@ -1961,6 +2014,8 @@
     await pc.setLocalDescription(answer);
     sendSignal('answer', { sdp: answer });
     incomingOfferSig = null;
+    callState = 'connecting';
+    startConnectTimeout();
   }
 
   function declineIncomingCall(){
@@ -2025,6 +2080,9 @@
           try{ await pc.addIceCandidate(new RTCIceCandidate(c)); }catch(e){}
         }
         pendingCandidates = [];
+        clearTimeout(callTimeoutTimer); // got an answer — the "no answer" timer no longer applies
+        callState = 'connecting';
+        startConnectTimeout();
       }else if(s.type === 'candidate'){
         if(pc && pc.remoteDescription && pc.remoteDescription.type){
           try{ await pc.addIceCandidate(new RTCIceCandidate(s.candidate)); }catch(e){}
@@ -2335,6 +2393,7 @@
     presenceTimer = setInterval(pollPresence, 3000);
     pollPresence();
     updateBurnBtnUI();
+    refreshIceServers(); // fetch personal TURN credentials for calls, if configured
     msgInput.focus();
 
     // If notification permission was already granted in a previous visit,
